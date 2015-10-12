@@ -9,7 +9,18 @@ That's my email: iangiestaspauli@hotmail.com
 This version: v0.1
 =======================
 
-Adds 
+Dependencies:
+==============
+On windows (tested on Windows 7 32bits [on virtualbox]):
+--------------------------------------------------------
+python2.7 -> https://www.python.org/downloads/
+PyWin32 -> http://sourceforge.net/projects/pywin32/files/?source=navbar
+
+On linux (tested on ubuntu):
+-----------------------------
+python2.7
+
+
 License:
 
 
