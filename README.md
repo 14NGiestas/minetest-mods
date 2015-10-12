@@ -1,2 +1,0 @@
-My mods
-# minetest-mods
