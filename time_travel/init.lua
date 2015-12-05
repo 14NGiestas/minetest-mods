@@ -44,7 +44,7 @@ if f == nil then
 else
 	f = io.open(DATABASE_FILE,"r")
 	db = f:read("*all")
-	if data then
+	if db then
 		DATABASE = minetest.deserialize(db)
 	end
 	f:close()
@@ -55,6 +55,7 @@ minetest.register_on_joinplayer(function(player)
 	local name = player:get_player_name()
 	local time = minetest.get_timeofday()
 	if not DATABASE[name] then
+		print("Hey!!")
 		DATABASE[name] = {[math.random(10000000,99999999)] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = time}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false,t = time}} }}
 	end
 end)
@@ -172,6 +173,7 @@ function show_msg(player,pgnum,phone,box,field)
 		elseif box == "received" then
 			deco = "From"
 		end
+		message_text.s = false
 		local tel = minetest.formspec_escape(message_text.phone)
 		local formspec = "size[10,10]"..
 			"background[0,0;10,10;timetravel_phone.png]"..
@@ -223,11 +225,10 @@ function show_messages(player,pgnum,phone,box)
 			"label[4.2,0.1;Pages "..pgnum.."/"..num_pags.."]"..
 			"background[0,0;10,10;timetravel_phone.png]"
 		local i = 0.5
-		local n = 'normal'
+		local n
 		for j,line in ipairs(message_book) do
 			if line.s then
 				n = 'yellow'
-				line.s = false
 			else
 				n = 'normal'
 			end
@@ -417,20 +418,20 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 							local dest_player_name = key
 							break
 						end
-					end	
+					end
 				end
 			end
 			local time = minetest.get_timeofday()
 			local function send() --send message to dest
 				table.insert(DATABASE[dest_player_name][to]["received"], {["phone"] = phone,["message"] = body, ["s"] = true, ["t"] = time})
 			end
+			local function sv_copy()--save a copy
+				table.insert(DATABASE[player_name][phone]["sent"], {["phone"] = to,["message"] = body, ["s"] = false, ["t"] = time})
+			end
 			--TRY EXCEPT Lua version
 			if not pcall(send) then
 				--Error probably only when user or phone not exists
 				table.insert(DATABASE[player_name][phone]["received"], {["phone"] = 'Minetest',["message"] = "Message not sent, reason: player or number incorrect.", ["s"] = true, ["t"] = time})
-			end
-			local function sv_copy()--save a copy
-				table.insert(DATABASE[player_name][phone]["sent"], {["phone"] = to,["message"] = body, ["s"] = false, ["t"] = time})
 			end
 			if not pcall(sv_copy) then
 				print("strange error!!!")
