@@ -30,41 +30,22 @@ for line in io.lines(WORLD_LINE) do
 	d = minetest.deserialize(line)
 	break
 end
---PHONE number by player_name/object_name/node_name
 
-PHONE_BOOK = minetest.get_worldpath().."/timetravel_phones.txt"
---Check if file exists else create
-f = io.open(PHONE_BOOK,"r")
-rawset(_G, "PHN_DATA", {["singleplayer"] = 10000000})
-if f == nil then
-	f2 = io.open(PHONE_BOOK,"w")
-	local phn_data = minetest.serialize(PHN_DATA)
-	f2:write(phn_data)
-	io.close(f2)
-else
-	f = io.open(PHONE_BOOK,"r")
-	data = f:read("*all")
-	if data then
-		PHN_DATA = minetest.deserialize(data)
-	end
-	f:close()
-end
-
---#  PHONE_MESSAGES - Txt database containing phone messages
-PHONE_MESSAGES = minetest.get_worldpath().."/timetravel_messages.txt"
+--# DATABASE_FILE - Txt database containing whole data
+DATABASE_FILE = minetest.get_worldpath().."/timetravel_phone_database.txt"
 --### Check if file exists else create
-f = io.open(PHONE_MESSAGES,"r")
-rawset(_G, "MSG_DATA", {["10000000"] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = 0}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false, t = 0}} }})
+f = io.open(DATABASE_FILE,"r")
+rawset(_G, "DATABASE", {["singleplayer"] = {[10000000] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = 0}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false, t = 0}} }}})
 if f == nil then
-	f2 = io.open(PHONE_MESSAGES,"w")
-	local msg_data = minetest.serialize(MSG_DATA)
-	f2:write(msg_data)
+	f2 = io.open(DATABASE_FILE,"w")
+	local db = minetest.serialize(DATABASE)
+	f2:write(db)
 	f2:close()
 else
-	f = io.open(PHONE_MESSAGES,"r")
-	data = f:read("*all")
+	f = io.open(DATABASE_FILE,"r")
+	db = f:read("*all")
 	if data then
-		MSG_DATA = minetest.deserialize(data)
+		DATABASE = minetest.deserialize(db)
 	end
 	f:close()
 end
@@ -72,30 +53,19 @@ end
 --CREATE NEW PHONES
 minetest.register_on_joinplayer(function(player)
 	local name = player:get_player_name()
-	if not PHN_DATA[name] then
-		PHN_DATA[name] = math.random(10000000,99999999)
-	end
-
 	local time = minetest.get_timeofday()
-
-	if not MSG_DATA[PHN_DATA[name]] then
-		MSG_DATA[PHN_DATA[name]] = {}
-		MSG_DATA[PHN_DATA[name]] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = time}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false,t = time}} }
+	if not DATABASE[name] then
+		DATABASE[name] = {[math.random(10000000,99999999)] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = time}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false,t = time}} }}
 	end
 end)
-
 local timer = 0
 minetest.register_globalstep(function(dtime)
 	timer = timer + dtime
 	if timer >= 5 then -- Save every #minute
-		local msg_data = minetest.serialize(MSG_DATA)
-		local phn_data = minetest.serialize(PHN_DATA)
-		local f1 = io.open(PHONE_MESSAGES,"w")
-		f1:write(msg_data)
+		local db = minetest.serialize(DATABASE)
+		local f1 = io.open(DATABASE_FILE,"w")
+		f1:write(db)
 		f1:close()
-		local f2 = io.open(PHONE_BOOK,"w")
-		f2:write(phn_data)
-		f2:close()
 		timer = 0
 	end
 end)
@@ -192,7 +162,7 @@ end
 function show_msg(player,pgnum,phone,box,field)
 	--*** TODO BEAUTYFY THIS ***
 	if phone and box then
-		local message_book = MSG_DATA[phone][box]
+		local message_book = DATABASE[player:get_player_name()][phone][box]
 		num_pags = math.ceil(tablelength(message_book)/4)
 		message_book  = slice(message_book, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
 		local message_text = message_book[field]
@@ -223,9 +193,9 @@ end
 function messages_menu(player)
 	local formspec = "size[10,10]"..
 		"background[0,0;10,10;timetravel_phone.png]"..
-		"image_button[2,0.5;6,2;timetravel_sentbox.png;1;]"..
+		"image_button[2,0.5;6,2;timetravel_new_msg.png;3;]"..
 		"image_button[2,2.5;6,2;timetravel_rcvdbox.png;2;]"..
-		"image_button[2,4.5;6,2;timetravel_new_msg.png;3;]"..
+		"image_button[2,4.5;6,2;timetravel_sentbox.png;1;]"..
 		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
 		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
@@ -246,27 +216,26 @@ end
 
 function show_messages(player,pgnum,phone,box)
 	if phone and box then
-		local message_book = MSG_DATA[phone][box]
+		local message_book = DATABASE[player:get_player_name()][phone][box]
 		rawset(_G, "num_pags", math.ceil(tablelength(message_book)/4))
 		message_book  = slice(message_book, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
 		local formspec = "size[10,10]"..
 			"label[4.2,0.1;Pages "..pgnum.."/"..num_pags.."]"..
 			"background[0,0;10,10;timetravel_phone.png]"
-		local s_img = 'timetravel_read_msg.png'
-		local i = 0.5 
+		local i = 0.5
+		local n = 'normal'
 		for j,line in ipairs(message_book) do
-			if line.s == 1 then
-				s_img = 'timetravel_unread_msg.png'
-			elseif line.s == 0 then
-				s_img = 'timetravel_read_msg.png'
+			if line.s then
+				n = 'yellow'
+				line.s = false
+			else
+				n = 'normal'
 			end
 			local time_fmt = string.format("%.2d:%.2d:%.2d", line.t/(60*60), line.t / 60 % 60, line.t % 60)
-			formspec = formspec.."image_button[2,"..i..";6,2;timetravel_button.png;"..j..";]"..
-				"imagem[2.5,"..(i+0.2)..";10,10;"..s_img.."]"..
+			formspec = formspec.."image_button[2,"..i..";6,2;timetravel_button_"..n..".png;"..j..";]"..
 				"label[6.5,"..(i+0.5)..";"..time_fmt.."]"..
 				"label[2.5,"..(i+0.5)..";"..line.phone.."]"..
-				"label[3.5,"..(i+0.9)..";"..string.sub(line.message,1,20).."...]"..
-				""
+				"label[3.5,"..(i+0.9)..";"..string.sub(line.message,1,20).."...]"
 			i = i + 2
 		end
 		formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
@@ -320,18 +289,20 @@ minetest.register_craftitem("time_travel:phone", {
 	on_use = function(itemstack, user, pointed_thing)
 		--help --> https://github.com/minetest/minetest/blob/master/doc/lua_api.txt#L1343
 		show_apps(user)
-		--[[
-		--print("Player "..player:get_player_name().." submitted fields "..dump(fields))
 		--Play Sounds Hacking the gate
-		minetest.rollback_revert_actions_by("player:"..player:get_player_name(), 5) -- hours*minutes*seconds
-		]]
+		--minetest.rollback_revert_actions_by("player:"..player:get_player_name(), 5) -- hours*minutes*seconds
 	end,
 })
 page = 1
 box = "sent"
 minetest.register_on_player_receive_fields(function(player, formname, fields)
 	print(dump(fields))
-	local phone = PHN_DATA[player:get_player_name()]
+	local player_name = player:get_player_name()
+	for key, value in pairs(DATABASE[player_name]) do
+		--get the first one
+		phone = key
+		break
+	end
 	if not player:get_wielded_item() == "time_travel:phone" then return end
 	if formname == "time_travel:phoneform" then -- Replace this with your form name
 		if fields.messages then
@@ -432,23 +403,38 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			local body = fields["time_travel:body_msg"]
 			if not to then return end
 			if not body then return end
-			--if number does not exists
-			if not MSG_DATA[to] then
-				MSG_DATA[to] = {received = {{phone = '',message = '',s = 0, t = 0}},sent = {{phone = '',message = '',s = 0, t = 0}} }
-				print('I used this 1st')
-			end
-			--if number does not exists
-			if not MSG_DATA[phone] then
-				MSG_DATA[phone] = {received = {{phone = '',message = '',s = 0,t = 0}},sent = {{phone = '',message = '',s = 0, t = 0}} }
-				print('I used this 2nd')
+			local dest_player_name = to
+			if type(to) == "string" then -- a name
+				for key, value in pairs(DATABASE[to] or {}) do
+					--get the first one
+					to = key
+					break
+				end
+			elseif type(to) == "number" then
+				for key, value in pairs(DATABASE or {}) do
+					for key2, value in value do
+						if key2 == to then
+							local dest_player_name = key
+							break
+						end
+					end	
+				end
 			end
 			local time = minetest.get_timeofday()
-			--send message to dest
-			print(to,"received")
-			table.insert(MSG_DATA[to]["received"], {["phone"] = phone,["message"] = body, ["s"] = 1, ["t"] = time})
-			--save a copy
-			print(phone,"sent")
-			table.insert(MSG_DATA[phone]["sent"], {["phone"] = to,["message"] = body, ["s"] = 0, ["t"] = time})
+			local function send() --send message to dest
+				table.insert(DATABASE[dest_player_name][to]["received"], {["phone"] = phone,["message"] = body, ["s"] = true, ["t"] = time})
+			end
+			--TRY EXCEPT Lua version
+			if not pcall(send) then
+				--Error probably only when user or phone not exists
+				table.insert(DATABASE[player_name][phone]["received"], {["phone"] = 'Minetest',["message"] = "Message not sent, reason: player or number incorrect.", ["s"] = true, ["t"] = time})
+			end
+			local function sv_copy()--save a copy
+				table.insert(DATABASE[player_name][phone]["sent"], {["phone"] = to,["message"] = body, ["s"] = false, ["t"] = time})
+			end
+			if not pcall(sv_copy) then
+				print("strange error!!!")
+			end
 			messages_menu(player)
 		end
 	end
