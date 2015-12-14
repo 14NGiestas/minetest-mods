@@ -1,6 +1,3 @@
--- GENERATED CODE
--- Node Box Editor, version 0.9.0
--- Namespace: test
 d = {
 	n_1 = math.floor(math.random(0,1)),
 	n_2 = "dot",
@@ -35,7 +32,7 @@ DATABASE_FILE = minetest.get_worldpath().."/timetravel_phone_database.txt"
 --### Check if file exists else create
 f = io.open(DATABASE_FILE,"r")
 
-rawset(_G, "DATABASE", {["singleplayer"] = {[10000000] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = 0}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false, t = minetest.get_timeofday()}}, contacts = {{name = "My Number",phone = 10000000}}, config = {sms_ringtone = 1, theme = 1,vibration = true,silent_mode = false,wallpaper = 1} }}})
+rawset(_G, "DATABASE", {["singleplayer"] = {[10000000] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = minetest.get_timeofday(),d = minetest.get_gametime()}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false, t = minetest.get_timeofday(),d = minetest.get_gametime()}}, contacts = {{name = "My Number",phone = 10000000}}, config = {sms_ringtone = 1, theme = 1,vibration = true,silent_mode = false,wallpaper = 1} }}})
 if f == nil then
 	f2 = io.open(DATABASE_FILE,"w")
 	local db = minetest.compress(minetest.serialize(DATABASE))
@@ -49,6 +46,7 @@ else
 	end
 	f:close()
 end
+--Phone Handler
 PHHandler = {}
 --CREATE NEW PHONES
 minetest.register_on_joinplayer(function(player)
@@ -56,13 +54,13 @@ minetest.register_on_joinplayer(function(player)
 	local time = minetest.get_timeofday()
 	local phone_nb = math.random(10000000,99999999)
 	if not DATABASE[name] then
-		DATABASE[name] = {[phone_nb] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = time}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false,t = time}}, contacts = {{name = "My Number",phone = phone_nb}}, config = {sms_ringtone = 1, theme = 1,vibration = true,silent_mode = false,wallpaper = 1} }}
+		DATABASE[name] = {[phone_nb] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = time,["d"] = minetest.get_gametime()}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false,t = time,["d"] = minetest.get_gametime()}}, contacts = {{name = "My Number",phone = phone_nb}}, config = {sms_ringtone = 1, theme = 1,vibration = true,silent_mode = false,wallpaper = 1} }}
 	end
 	--phone handler (not necessary store data on Hard Disc)
 	PHHandler[name] = {}
 	PHHandler[name]["frame"] = 1
 	PHHandler[name]["playing"] = false
-	print(dump(PHHandler))
+	PHHandler[name]["video"] = {src = "timetravel_video2.png",frames = 35}
 end)
 local timer = 0
 minetest.register_globalstep(function(dtime)
@@ -71,7 +69,12 @@ minetest.register_globalstep(function(dtime)
 		local name = player:get_player_name()
 		if PHHandler[name]["playing"] then
 			PHHandler[name]["frame"] = PHHandler[name]["frame"] + 1
-			show_video(player,"timetravel_video2.png")
+			if PHHandler[name]["frame"]  <= PHHandler[name]["video"].frames then
+				show_video(player,PHHandler[name]["video"].src)
+			else
+				PHHandler[name]["playing"] = false
+				show_video(player,PHHandler[name]["video"].src)
+			end
 		end
 	end
 	if timer >= 5 then -- Save every 5 sec
@@ -113,7 +116,7 @@ minetest.register_node("time_travel:div_meter", {
 		"timetravel_textop.png",
 		"timetravel_texfront.png", --right
 		"timetravel_texfront.png", --left
-		"(timetravel_texback.png^[combine:200x200:0,0=timetravel_texback.png:1,50="..d.n_1..".png:16,50=timetravel_"..d.n_2..".png:31,50=timetravel_"..d.n_3..".png:46,50=timetravel_"..d.n_4..".png:61,50=timetravel_"..d.n_5..".png:76,50=timetravel_"..d.n_6..".png:91,50=timetravel_"..d.n_7..".png:106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png)^[transformFX", --back
+		"(timetravel_texback.png^[combine:200x200:0,0=timetravel_texback.png:1,50=timetravel_"..d.n_1..".png:16,50=timetravel_"..d.n_2..".png:31,50=timetravel_"..d.n_3..".png:46,50=timetravel_"..d.n_4..".png:61,50=timetravel_"..d.n_5..".png:76,50=timetravel_"..d.n_6..".png:91,50=timetravel_"..d.n_7..".png:106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png)^[transformFX", --back
 		"timetravel_texback.png^[combine:200x200:0,0=timetravel_texback.png:1,50=timetravel_"..d.n_1..".png:16,50=timetravel_"..d.n_2..".png:31,50=timetravel_"..d.n_3..".png:46,50=timetravel_"..d.n_4..".png:61,50=timetravel_"..d.n_5..".png:76,50=timetravel_"..d.n_6..".png:91,50=timetravel_"..d.n_7..".png:106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png", --front
 	},
 	diggable = true,
@@ -168,8 +171,8 @@ function show_apps(player)
 		"image_button[4,0.5;2,2;timetravel_phone_calls.png;calls;\n\n\n\nCalls]"..
 		"image_button[6,0.5;2,2;timetravel_phone_contacts.png;contacts;\n\n\n\nContacts]"..				
 		"image_button[2,2.5;2,2;timetravel_phone_photoglry.png;1;\n\n\n\nPhotos]"..				
-		"image_button[4,2.5;2,2;timetravel_phone_.png;videos;\n\n\n\nVideos]"..				
-		"image_button[6,2.5;2,2;timetravel_phone_.png;3;\n\n\n\nAlarm]"..				
+		"image_button[4,2.5;2,2;timetravel_phone_videos.png;videos;\n\n\n\n\nVideos]"..				
+		"image_button[6,2.5;2,2;timetravel_phone_.png;3;\n\n\n\nAlarm]"..			
 		"image_button[2,4.5;2,2;timetravel_phone_.png;3;\n\n\n\nCalculator]"..
 		"image_button[4,4.5;2,2;timetravel_phone_.png;3;\n\n\n\nCalendar]"..
 		"image_button[6,4.5;2,2;timetravel_phone_.png;3;\n\n\n\nCamera]"..
@@ -253,20 +256,19 @@ function show_messages(player,pgnum,phone,box)
 			"background[0,0;10,10;timetravel_phone.png^"..background.."]"
 		local i = 0.5
 		local n
+		local time_speed = minetest.setting_get("time_speed")
 		for j,line in ipairs(message_book) do
 			if line.s then
 				n = 'yellow'
 			else
 				n = 'normal'
 			end
-			local days = math.floor(minetest.get_gametime()/86400)
-			--FIXME find a way to get the day since world creation
-			local date = tostring(days)
+			local date = os.date("%x", (os.time(os.date("*t")))/time_speed) --convert to local minetest time
 			local time_fmt = string.format("%.2d:%.2d:%.2d", (line.t*86400)/(60*60), (line.t*86400) / 60 % 60, (line.t*86400) % 60)
 			formspec = formspec.."image_button[2,"..i..";6,2;timetravel_button_"..n..".png;"..j..";]"..
-				"label[6.5,"..(i+0.5)..";"..date..","..time_fmt.."]"..
+				"label[5,"..(i+0.5)..";"..date..","..time_fmt.."]"..
 				"label[2.5,"..(i+0.5)..";"..line.phone.."]"..
-				"label[3.5,"..(i+0.9)..";"..string.sub(line.message,1,20).."...]"
+				"label[3.5,"..(i+0.9)..";"..string.sub(string.gsub(line.message, "\n", " "),1,20).."...]"
 			i = i + 2
 		end
 		formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
@@ -313,25 +315,46 @@ function show_bg(player,phone)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
+function video_galery(player)
+	local name = player:get_player_name()
+	local t_frames = 35
+	local videosrc = "timetravel_video2.png"
+	local formspec = "size[10,10]" ..
+		"background[0,0;10,10;timetravel_phone.png;false]"
+	local formspec = formspec..
+		"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":1)]"..
+		"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"
+	minetest.show_formspec(name, "time_travel:show_video", formspec)
+end
 function show_video(player,videosrc)
 	local name = player:get_player_name()
-	if  PHHandler[name]["playing"] then
-		local frame = PHHandler[name]["frame"]
+	local t_frames = PHHandler[name]["video"].frames
+	local frame = PHHandler[name]["frame"]
+	if PHHandler[name]["playing"] then
 		minetest.show_formspec(name, "time_travel:show_video",
 			"size[10,10]" ..
 			"background[0,0;10,10;timetravel_phone_90.png;false]"..
-			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:35:"..frame..")]".. --500 x 281 
+			"image[0.8,7.4;9.4,0.6;timetravel_video_bar.png]"..
+			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":"..frame..")]".. --500 x 281
+			"image[0.8,7.4;"..(9.1*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
+			"image_button[0.3,7.4;0.7,0.7;timetravel_button_pause.png;pause;]"..
 			"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
 			"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
 			"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"..
 			"")
 	else
-		PHHandler[name]["frame"] = 1
+		if frame >= t_frames then
+			PHHandler[name]["frame"] = 1
+		end
 		minetest.show_formspec(name, "time_travel:show_video",
 			"size[10,10]" ..
 			"background[0,0;10,10;timetravel_phone_90.png;false]"..
-			"image_button[3.5,4;2,2;timetravel_button_play.png;play;]"..
-			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:35:1)]"..
+			"image_button[0.3,7.4;0.7,0.7;timetravel_button_play.png;play;]"..
+			"image[0.8,7.4;9.4,0.6;timetravel_video_bar.png]"..
+			"image[0.8,7.4;"..(9.1*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
+			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":1)]"..
 			"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
 			"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
 			"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"..
@@ -346,9 +369,6 @@ minetest.register_craftitem("time_travel:phone", {
 	physical = true,
 	textures = {"timetravel_phone.png"},
 	on_use = function(itemstack, user, pointed_thing)
-		user:set_properties({minha = 42})
-		local prop = user:get_properties()
-		print(dump(prop))
 		--help --> https://github.com/minetest/minetest/blob/master/doc/lua_api.txt#L1343
 		show_apps(user)
 		--Play Sounds Hacking the gate
@@ -367,7 +387,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			--messages screen
 			messages_menu(player,phone)
 		elseif fields.videos then
-			show_video(player,"timetravel_video2.png")
+			show_video(player,PHHandler[player_name]["video"].src)
 		elseif fields.calls then
 			show_calls(player,phone)
 		elseif fields.contacts then
@@ -454,16 +474,18 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		end
 	elseif formname == "time_travel:show_video" then
 		if fields.quit then
-			PHHandler[player_name]["playing"] = not PHHandler[player_name]["playing"]
+			PHHandler[player_name]["playing"] = false
 		elseif fields.o then
-			PHHandler[player_name]["playing"] = not PHHandler[player_name]["playing"]
+			PHHandler[player_name]["playing"] = false
 			show_apps(player)
 		elseif fields.p then
+			PHHandler[player_name]["playing"] = false
+			show_bg(player,phone)
+		elseif fields.pause then
 			PHHandler[player_name]["playing"] = not PHHandler[player_name]["playing"]
-			show_bg(player)
 		elseif fields.play then
-			PHHandler[player_name]["playing"] = true
-			show_video(player,"timetravel_video2.png")
+			PHHandler[player_name]["playing"] = not PHHandler[player_name]["playing"]
+			show_video(player,PHHandler[player_name]["video"].src)
 		end
 	elseif formname == "time_travel:messages_compose_menu" then
 		if fields.o or fields.CANCEL then
@@ -495,15 +517,15 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			end
 			local time = minetest.get_timeofday()
 			local function send() --send message to dest
-				table.insert(DATABASE[dest_player_name][to]["received"],1, {["phone"] = phone,["message"] = body, ["s"] = true, ["t"] = time})
+				table.insert(DATABASE[dest_player_name][to]["received"],1, {["phone"] = phone,["message"] = body, ["s"] = true, ["t"] = time,["d"] = minetest.get_gametime()})
 			end
 			local function sv_copy()--save a copy
-				table.insert(DATABASE[player_name][phone]["sent"],1, {["phone"] = to,["message"] = body, ["s"] = false, ["t"] = time})
+				table.insert(DATABASE[player_name][phone]["sent"],1, {["phone"] = to,["message"] = body, ["s"] = false, ["t"] = time,["d"] = minetest.get_gametime()})
 			end
 			--TRY EXCEPT Lua version
 			if not pcall(send) then
 				--Error probably only when user or phone not exists
-				table.insert(DATABASE[player_name][phone]["received"],1, {["phone"] = 'Minetest',["message"] = "Message not sent, reason: player or number incorrect.", ["s"] = true, ["t"] = time})
+				table.insert(DATABASE[player_name][phone]["received"],1, {["phone"] = 'Minetest',["message"] = "Message not sent, reason: player or number incorrect.", ["s"] = true, ["t"] = time,["d"] = minetest.get_gametime()})
 			else
 				local tone = DATABASE[player_name][phone]["config"]["sms_ringtone"]
 				local vibration = DATABASE[player_name][phone]["config"]["vibration"]
