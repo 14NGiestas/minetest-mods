@@ -148,14 +148,6 @@ function slice(tbl, first, last, step)
 	return sliced
 end
 
-function tablelength(T)
-	local count = 0
-	for _ in pairs(T) do
-		count = count + 1
-	end
-	return count
-end
-
 function get_first_key(T)
 	for key, value in pairs(T) do
 		return key
@@ -188,7 +180,7 @@ function show_msg(player,pgnum,phone,box,field)
 	--*** TODO BEAUTYFY THIS ***
 	if phone and box then
 		local message_book = DATABASE[player:get_player_name()][phone][box]
-		num_pags = math.ceil(tablelength(message_book)/4)
+		num_pags = math.ceil(#message_book/4)
 		message_book  = slice(message_book, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
 		local message_text = message_book[field]
 		local deco = ''
@@ -248,7 +240,7 @@ end
 function show_messages(player,pgnum,phone,box)
 	if phone and box then
 		local message_book = DATABASE[player:get_player_name()][phone][box]
-		rawset(_G, "num_pags", math.ceil(tablelength(message_book)/4))
+		rawset(_G, "num_pags", math.ceil(#message_book/4))
 		message_book  = slice(message_book, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
 		local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 		local formspec = "size[10,10]"..
