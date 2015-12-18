@@ -11,7 +11,7 @@ d = {
 d.n = d.n_1.."."..d.n_3..d.n_4..d.n_5..d.n_6..d.n_7..d.n_8
 rawset(_G, "d", d)
 --WORLD LINE - number of divergence
-WORLD_LINE = minetest.get_worldpath().."/world_line.txt"
+WORLD_LINE = minetest.get_worldpath().."/timetrave_metadata.txt"
 --Check if file exists else create
 f = io.open(WORLD_LINE,"r")
 if f == nil then
@@ -46,6 +46,26 @@ else
 	end
 	f:close()
 end
+
+
+VIDEOGLRY_FILE = minetest.get_modpath("time_travel").."/timetravel_video_galery.txt"
+VIDEOGLRY = {{src = "timetravel_video2.png",frames = 35},{src = "timetravel_video1.png",frames = 24},{src = "timetravel_video3.png",frames = 4},{src = "timetravel_static.png",frames = 24},{src = "timetravel_video4.png",frames = 12},{src = "timetravel_video1.png",frames = 24},{src = "timetravel_video2.png",frames = 35},{src = "timetravel_video1.png",frames = 24}}
+--### Check if file exists else create
+f = io.open(VIDEOGLRY_FILE,"r")
+if f == nil then
+	f2 = io.open(VIDEOGLRY_FILE,"w")
+	local db = minetest.compress(minetest.serialize(VIDEOGLRY))
+	f2:write(db)
+	f2:close()
+else
+	f = io.open(VIDEOGLRY_FILE,"r")
+	db = f:read("*all")
+	if db then
+		VIDEOGLRY = minetest.deserialize(minetest.decompress(db))
+	end
+	f:close()
+end
+
 --Phone Handler
 PHHandler = {}
 --CREATE NEW PHONES
@@ -60,7 +80,9 @@ minetest.register_on_joinplayer(function(player)
 	PHHandler[name] = {}
 	PHHandler[name]["frame"] = 1
 	PHHandler[name]["playing"] = false
-	PHHandler[name]["video"] = {src = "timetravel_video2.png",frames = 35}
+	PHHandler[name]["video"] = VIDEOGLRY[1]
+	PHHandler[name]["page"] = 1
+	PHHandler[name]["box"] = "received"
 end)
 local timer = 0
 minetest.register_globalstep(function(dtime)
@@ -70,10 +92,10 @@ minetest.register_globalstep(function(dtime)
 		if PHHandler[name]["playing"] then
 			PHHandler[name]["frame"] = PHHandler[name]["frame"] + 1
 			if PHHandler[name]["frame"]  <= PHHandler[name]["video"].frames then
-				show_video(player,PHHandler[name]["video"].src)
+				show_video(player)
 			else
 				PHHandler[name]["playing"] = false
-				show_video(player,PHHandler[name]["video"].src)
+				show_video(player)
 			end
 		end
 	end
@@ -148,13 +170,6 @@ function slice(tbl, first, last, step)
 	return sliced
 end
 
-function tablelength(T)
-	local count = 0
-	for _ in pairs(T) do
-		count = count + 1
-	end
-	return count
-end
 
 function get_first_key(T)
 	for key, value in pairs(T) do
@@ -171,8 +186,8 @@ function show_apps(player)
 		"image_button[4,0.5;2,2;timetravel_phone_calls.png;calls;\n\n\n\nCalls]"..
 		"image_button[6,0.5;2,2;timetravel_phone_contacts.png;contacts;\n\n\n\nContacts]"..				
 		"image_button[2,2.5;2,2;timetravel_phone_photoglry.png;1;\n\n\n\nPhotos]"..				
-		"image_button[4,2.5;2,2;timetravel_phone_videos.png;videos;\n\n\n\n\nVideos]"..				
-		"image_button[6,2.5;2,2;timetravel_phone_.png;3;\n\n\n\nAlarm]"..			
+		"image_button[4,2.5;2,2;timetravel_phone_videos.png;videos;\n\n\n\nVideos]"..				
+		"image_button[6,2.5;2,2;timetravel_phone_alarm.png;alarm;\n\n\n\nAlarm]"..			
 		"image_button[2,4.5;2,2;timetravel_phone_.png;3;\n\n\n\nCalculator]"..
 		"image_button[4,4.5;2,2;timetravel_phone_.png;3;\n\n\n\nCalendar]"..
 		"image_button[6,4.5;2,2;timetravel_phone_.png;3;\n\n\n\nCamera]"..
@@ -188,7 +203,7 @@ function show_msg(player,pgnum,phone,box,field)
 	--*** TODO BEAUTYFY THIS ***
 	if phone and box then
 		local message_book = DATABASE[player:get_player_name()][phone][box]
-		num_pags = math.ceil(tablelength(message_book)/4)
+		num_pags = math.ceil(#message_book/4)
 		message_book  = slice(message_book, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
 		local message_text = message_book[field]
 		local deco = ''
@@ -197,20 +212,21 @@ function show_msg(player,pgnum,phone,box,field)
 		elseif box == "received" then
 			deco = "From"
 		end
-		if message_text then
-			message_text.s = false
-		end
-		local tel = minetest.formspec_escape(message_text.phone)
 		local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 		local formspec = "size[10,10]"..
-			"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-			"textlist[2,1;5.8,7.4;;"..deco..": "..tel..","
-		local msg = minetest.formspec_escape(message_text.message)
-		for i = 1,#msg do
-			if i % 37 == 0 then
-				formspec = formspec..msg:sub(i,i)..","
-			else
-				formspec = formspec..msg:sub(i,i)
+			"background[0,0;10,10;timetravel_phone.png^"..background.."]"
+		if message_text then
+			message_text.s = false
+			local tel = minetest.formspec_escape(message_text.phone)
+			formspec = formspec..
+				"textlist[2,1;5.8,7.4;;"..deco..": "..tel..","
+			local msg = minetest.formspec_escape(message_text.message)
+			for i = 1,#msg do
+				if i % 37 == 0 then
+					formspec = formspec..msg:sub(i,i)..","
+				else
+					formspec = formspec..msg:sub(i,i)
+				end
 			end
 		end
 		formspec = formspec..";]image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
@@ -246,11 +262,12 @@ function show_compose_msg(player,number,phone)
 end
 
 function show_messages(player,pgnum,phone,box)
+	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	if phone and box then
 		local message_book = DATABASE[player:get_player_name()][phone][box]
-		rawset(_G, "num_pags", math.ceil(tablelength(message_book)/4))
+		print(dump(message_book))
+		rawset(_G, "num_pags", math.ceil(#message_book/4))
 		message_book  = slice(message_book, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
-		local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 		local formspec = "size[10,10]"..
 			"label[4.2,0.1;Pages "..pgnum.."/"..num_pags.."]"..
 			"background[0,0;10,10;timetravel_phone.png^"..background.."]"
@@ -265,10 +282,12 @@ function show_messages(player,pgnum,phone,box)
 			end
 			local date = os.date("%x", (os.time(os.date("*t")))/time_speed) --convert to local minetest time
 			local time_fmt = string.format("%.2d:%.2d:%.2d", (line.t*86400)/(60*60), (line.t*86400) / 60 % 60, (line.t*86400) % 60)
-			formspec = formspec.."image_button[2,"..i..";6,2;timetravel_button_"..n..".png;"..j..";]"..
+			formspec = formspec.."image[2,"..i..";7.2,2.2;timetravel_button_"..n..".png]"..
 				"label[5,"..(i+0.5)..";"..date..","..time_fmt.."]"..
 				"label[2.5,"..(i+0.5)..";"..line.phone.."]"..
-				"label[3.5,"..(i+0.9)..";"..string.sub(string.gsub(line.message, "\n", " "),1,20).."...]"
+				"label[3.5,"..(i+0.9)..";"..string.sub(string.gsub(line.message, "\n", " "),1,20).."...]"..
+				"image_button[2,"..i..";6,2;timetravel_tranparency.png;"..j..";;false;false;]"..
+				"image_button[7,"..(i+1)..";0.6,0.6;timetravel_phone_delete.png;delete"..j..";;false;false;]"
 			i = i + 2
 		end
 		formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
@@ -305,31 +324,44 @@ function show_contacts(player,phone)
 		"")
 end
 function show_bg(player,phone)
-	local time = minetest.get_timeofday() * 24000
+	local time = minetest.get_timeofday()
+	local time_fmt = string.format("%.2d:%.2d:%.2d", (time*86400)/(60*60), (time*86400) / 60 % 60, (time*86400) % 60)
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	minetest.show_formspec(player:get_player_name(), "time_travel:bg",
 		"size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
+		"label[4.5,3.5;"..time_fmt.."]"..
 		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
 		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
-function video_galery(player)
+function video_galery(player,pgnum)
 	local name = player:get_player_name()
-	local t_frames = 35
-	local videosrc = "timetravel_video2.png"
 	local formspec = "size[10,10]" ..
-		"background[0,0;10,10;timetravel_phone.png;false]"
-	local formspec = formspec..
-		"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":1)]"..
-		"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"
-	minetest.show_formspec(name, "time_travel:show_video", formspec)
+		"background[0,0;10,10;timetravel_phone.png;false]"..
+		"label[4.2,0.1;Pages "..pgnum.."/"..math.ceil(#VIDEOGLRY/8).."]"
+	local VIDEOGLRY_t  = slice(VIDEOGLRY, 1 + 8*(pgnum - 1), 8*(pgnum), 1)
+	local i = 0.5
+	local n = 2.2
+	for j,line in ipairs(VIDEOGLRY_t) do
+		formspec = formspec..
+			"image["..n..","..i..";3,2;("..line.src.."^[verticalframe:"..line.frames..":1)]"..
+			"image_button["..n..","..i..";3,2;timetravel_tranparency.png;"..j..";;false;false;]" --transparent
+		n = n + 3
+		if n == 8.2 then
+			i = i + 2
+			n = 2.2
+		end
+	end
+	formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	minetest.show_formspec(name, "time_travel:video_galery", formspec)
 end
-function show_video(player,videosrc)
+function show_video(player)
 	local name = player:get_player_name()
+	local videosrc = PHHandler[name]["video"].src
 	local t_frames = PHHandler[name]["video"].frames
 	local frame = PHHandler[name]["frame"]
 	if PHHandler[name]["playing"] then
@@ -338,22 +370,21 @@ function show_video(player,videosrc)
 			"background[0,0;10,10;timetravel_phone_90.png;false]"..
 			"image[0.8,7.4;9.4,0.6;timetravel_video_bar.png]"..
 			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":"..frame..")]".. --500 x 281
-			"image[0.8,7.4;"..(9.1*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
+			"image[0.8,7.4;"..(9.4*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
 			"image_button[0.3,7.4;0.7,0.7;timetravel_button_pause.png;pause;]"..
 			"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
 			"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
 			"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"..
 			"")
 	else
-		if frame >= t_frames then
-			PHHandler[name]["frame"] = 1
-		end
+		PHHandler[name]["frame"] = 1
 		minetest.show_formspec(name, "time_travel:show_video",
 			"size[10,10]" ..
 			"background[0,0;10,10;timetravel_phone_90.png;false]"..
+			"image_button[3.5,4;2,2;timetravel_button_play.png;play;;false;false;]"..
 			"image_button[0.3,7.4;0.7,0.7;timetravel_button_play.png;play;]"..
 			"image[0.8,7.4;9.4,0.6;timetravel_video_bar.png]"..
-			"image[0.8,7.4;"..(9.1*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
+			"image[0.8,7.4;"..(9.4*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
 			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":1)]"..
 			"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
 			"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
@@ -375,19 +406,20 @@ minetest.register_craftitem("time_travel:phone", {
 		--minetest.rollback_revert_actions_by("player:"..player:get_player_name(), 5) -- hours*minutes*seconds
 	end,
 })
-page = 1
-box = "sent"
+
 minetest.register_on_player_receive_fields(function(player, formname, fields)
 	print(dump(fields))
 	local player_name = player:get_player_name()
 	local phone = get_first_key(DATABASE[player:get_player_name()])
 	if not player:get_wielded_item() == "time_travel:phone" then return end
+	local page = PHHandler[player_name]["page"]
 	if formname == "time_travel:phoneform" then -- Replace this with your form name
 		if fields.messages then
 			--messages screen
 			messages_menu(player,phone)
 		elseif fields.videos then
-			show_video(player,PHHandler[player_name]["video"].src)
+			--show_video(player,PHHandler[player_name]["video"].src)
+			video_galery(player,page)
 		elseif fields.calls then
 			show_calls(player,phone)
 		elseif fields.contacts then
@@ -406,7 +438,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			else
 				page = num_pags
 			end
-			show_messages(player,page,phone,box)
+			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		end
 		if fields.key_up then
 			if page > 1 then
@@ -414,16 +446,29 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			else
 				page = 1
 			end
-			show_messages(player,page,phone,box)
+			show_messages(player,page,phone,PHHandler[player_name]["box"])
+		end
+		if fields["delete1"] then
+			DATABASE[player_name][phone][PHHandler[player_name]["box"]][(page-1)*4+1] = nil
+			show_messages(player,page,phone,PHHandler[player_name]["box"])
+		elseif fields["delete2"] then
+			DATABASE[player_name][phone][PHHandler[player_name]["box"]][(page-1)*4+2] = nil
+			show_messages(player,page,phone,PHHandler[player_name]["box"])
+		elseif fields["delete3"] then
+			DATABASE[player_name][phone][PHHandler[player_name]["box"]][(page-1)*4+3] = nil
+			show_messages(player,page,phone,PHHandler[player_name]["box"])
+		elseif fields["delete4"] then
+			DATABASE[player_name][phone][PHHandler[player_name]["box"]][(page-1)*4+4] = nil
+			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		end
 		if fields["1"] then
-			show_msg(player,page,phone,box,1)
+			show_msg(player,page,phone,PHHandler[player_name]["box"],1)
 		elseif fields["2"] then
-			show_msg(player,page,phone,box,2)
+			show_msg(player,page,phone,PHHandler[player_name]["box"],2)
 		elseif fields["3"] then
-			show_msg(player,page,phone,box,3)
+			show_msg(player,page,phone,PHHandler[player_name]["box"],3)
 		elseif fields["4"] then
-			show_msg(player,page,phone,box,4)
+			show_msg(player,page,phone,PHHandler[player_name]["box"],4)
 		end
 		if fields.o then
 			messages_menu(player,phone)
@@ -450,7 +495,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			--just the background
 			show_apps(player)
 		elseif fields.o then
-			show_messages(player,1,phone,box)
+			show_messages(player,1,phone,PHHandler[player_name]["box"])
 		end
 	elseif formname == "time_travel:bg" then
 		if fields.o then
@@ -458,11 +503,11 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		end
 	elseif formname == "time_travel:messages_menu" then
 		if fields["1"] then
-			box = "sent"
-			show_messages(player,1,phone,box)
+			PHHandler[player_name]["box"] = "sent"
+			show_messages(player,1,phone,PHHandler[player_name]["box"])
 		elseif fields["2"] then
-			box = "received"
-			show_messages(player,1,phone,box)
+			PHHandler[player_name]["box"] = "received"
+			show_messages(player,1,phone,PHHandler[player_name]["box"])
 		elseif fields["3"] then
 			show_compose_msg(player,'',phone)
 		end
@@ -472,12 +517,44 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		if fields.p then
 			show_bg(player,phone)
 		end
+	elseif formname == "time_travel:video_galery" then
+		if fields.o then
+			show_apps(player)
+		end
+		if fields.p then
+			show_bg(player,phone)
+		end
+		if fields["1"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+1]
+			show_video(player)
+		elseif fields["2"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+2]
+			show_video(player)
+		elseif fields["3"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+3]
+			show_video(player)
+		elseif fields["4"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+4]
+			show_video(player)
+		elseif fields["5"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+5]
+			show_video(player)
+		elseif fields["6"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+6]
+			show_video(player)
+		elseif fields["7"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+7]
+			show_video(player)
+		elseif fields["8"] then
+			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+8]
+			show_video(player)
+		end
 	elseif formname == "time_travel:show_video" then
 		if fields.quit then
 			PHHandler[player_name]["playing"] = false
 		elseif fields.o then
 			PHHandler[player_name]["playing"] = false
-			show_apps(player)
+			video_galery(player,page)
 		elseif fields.p then
 			PHHandler[player_name]["playing"] = false
 			show_bg(player,phone)
@@ -485,7 +562,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			PHHandler[player_name]["playing"] = not PHHandler[player_name]["playing"]
 		elseif fields.play then
 			PHHandler[player_name]["playing"] = not PHHandler[player_name]["playing"]
-			show_video(player,PHHandler[player_name]["video"].src)
+			show_video(player)
 		end
 	elseif formname == "time_travel:messages_compose_menu" then
 		if fields.o or fields.CANCEL then
