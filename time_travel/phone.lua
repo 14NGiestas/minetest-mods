@@ -494,7 +494,6 @@ local function show_camera(player,phone)
 	player:hud_set_flags({crosshair = true, hotbar = false, healthbar = false, wielditem = false, breathbar = false})
 end
 local function show_video(player)
-	print("---")
 	local name = player:get_player_name()
 	local videosrc = PHHandler[name]["video"].src
 	local t_frames = PHHandler[name]["video"].frames
@@ -777,8 +776,7 @@ p_rcv_fields(function(player, formname, fields)
 					s = s + rate
 				end
 				minetest_after(s + rate, function()
-					--change the hash, false also works
-					PHHandler[player_name]["playing"] = get_newhash()
+					PHHandler[player_name]["playing"] = false
 					PHHandler[player_name]["frame"] = 1
 					show_video(player)
 				end)
