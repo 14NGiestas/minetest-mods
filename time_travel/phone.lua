@@ -54,7 +54,7 @@ local function get_first_key(T)
 	end
 end
 local function get_newhash()
-	--returns a "random" 4 Bytes Hash -- I hope so...
+	--returns a "random" 4 Bytes Hash
 	return char(random(48,122))..char(random(48,122))..char(random(48,122))..char(random(48,122))
 end
 
