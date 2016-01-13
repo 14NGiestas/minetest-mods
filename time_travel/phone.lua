@@ -25,6 +25,38 @@ local p_rcv_fields            = minetest.register_on_player_receive_fields
 local t_insert                = table.insert
 local floor                   = math.floor
 local random                  = math.random
+local char                    = string.char
+
+--           --
+-- Utilities --
+--           --
+
+-------------------------
+--slice tables utility --
+-------------------------
+local function slice(tbl, first, last, step)
+	local sliced = {}
+
+	for i = first or 1, last or #tbl, step or 1 do
+		sliced[#sliced+1] = tbl[i]
+	end
+
+	return sliced
+end
+
+
+-------------------------
+-- Get 1st key utility --
+-------------------------
+local function get_first_key(T)
+	for key, value in pairs(T) do
+		return key
+	end
+end
+local function get_newhash()
+	--returns a "random" 4 Bytes Hash -- I hope so...
+	return char(random(48,122))..char(random(48,122))..char(random(48,122))..char(random(48,122))
+end
 
 d = {
 	n_1 = floor(random(0,1)),
@@ -40,7 +72,7 @@ d.n = d.n_1.."."..d.n_3..d.n_4..d.n_5..d.n_6..d.n_7..d.n_8
 rawset(_G, "d", d)
 --WORLD LINE - number of divergence
 WORLD_LINE = get_worldpath().."/timetrave_metadata.txt"
---Check if file exists else create
+--Check if file exists else create a new one
 f = io.open(WORLD_LINE,"r")
 if f == nil then
 	f2 = io.open(WORLD_LINE,"w")
@@ -78,7 +110,7 @@ end
 --VIDEOS - FIXME instructables.txt
 VIDEOGLRY_FILE = get_worldpath().."/timetravel_video_galery.txt"
 VIDEOGLRY = {{src = "timetravel_video4.png",frames = 12, snd = ""},{src = "timetravel_static.png",frames = 24, snd = "timetravel_staticsound"},{src = "timetravel_arested.png",frames = 504, snd = "timetravel_a",framerate = 1/12}}
---### Check if file exists else create
+--### Check if file exists else create a new one
 f = io.open(VIDEOGLRY_FILE,"r")
 if f == nil then
 	f2 = io.open(VIDEOGLRY_FILE,"w")
@@ -153,6 +185,7 @@ register_globalstep(function(dtime)
 end)
 
 local function time_travel(player,node,pos)
+	--update the world line
 	d = {
 		n_1 = floor(random(0,1)),
 		n_2 = "dot",
@@ -208,45 +241,6 @@ minetest_register_node("time_travel:div_meter", {
 	end,
 })
 
-minetest_register_node("time_travel:microwavephone", {
-	description = "Microwave Cellphone (Name Subject to change)",
-	tiles = {
-		"timetravel_microwave_top.png",
-		"timetravel_microwave_bottom.png",
-		"timetravel_microwave_sides.png",
-		"timetravel_microwave_sides.png",
-		"timetravel_microwave_back.png",
-		"timetravel_microwave_front.png"
-	},
-	drawtype = "nodebox",
-	paramtype = "light",
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.375, 0.5, 0.1875, 0.375}, -- NodeBox1
-		}
-	},
-	diggable = true,
-	paramtype2 = "facedir",
-	groups = {cracky=3}
-})
---slice tables utility
-local function slice(tbl, first, last, step)
-	local sliced = {}
-
-	for i = first or 1, last or #tbl, step or 1 do
-		sliced[#sliced+1] = tbl[i]
-	end
-
-	return sliced
-end
-
-
-local function get_first_key(T)
-	for key, value in pairs(T) do
-		return key
-	end
-end
 function show_apps(player)
 	local phone = get_first_key(DATABASE[player:get_player_name()])
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"]["wallpaper"]..".png"
@@ -766,9 +760,12 @@ p_rcv_fields(function(player, formname, fields)
 				local rate = PHHandler[player_name]["video"].framerate or 1/14 -- Frame rate
 				local frame = PHHandler[player_name]["video"].frames
 				local s = 0
+				local hash = get_newhash()
+				PHHandler[player_name]["playing"] = hash
 				for i = 1, frame do
 					minetest_after(s, function()
-						if PHHandler[player_name]["playing"] then
+						-- the variable hash does not change after function registration so this works!
+						if PHHandler[player_name]["playing"] == hash then
 							show_video(player)
 							if i <= frame then
 								PHHandler[player_name]["frame"] = PHHandler[player_name]["frame"] + 1
@@ -780,7 +777,8 @@ p_rcv_fields(function(player, formname, fields)
 					s = s + rate
 				end
 				minetest_after(s + rate, function()
-					PHHandler[player_name]["playing"] = false
+					--change the hash, false also works
+					PHHandler[player_name]["playing"] = get_newhash()
 					PHHandler[player_name]["frame"] = 1
 					show_video(player)
 				end)
