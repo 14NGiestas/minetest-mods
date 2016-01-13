@@ -491,7 +491,7 @@ local function show_camera(player,phone)
 	local name = player:get_player_name()
 	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	--hide built-in
-	player:hud_set_flags({crosshair = true, hotbar = false, healthbar = false, wielditem = false, breathbar = false})
+	--player:hud_set_flags({crosshair = true, hotbar = false, healthbar = false, wielditem = false, breathbar = false})
 end
 local function show_video(player)
 	local name = player:get_player_name()
