@@ -14,7 +14,8 @@ local get_timeofday           = minetest.get_timeofday
 local show_form               = minetest.show_formspec
 local m_play                  = minetest.sound_play
 local m_stop                  = minetest.sound_stop
-local m_on_newplayer         = minetest.register_on_newplayer
+local m_on_joinplayer         = minetest.register_on_joinplayer
+local m_on_newplayer          = minetest.register_on_newplayer
 local get_connected_players   = minetest.get_connected_players
 local kick_player             = minetest.kick_player
 local form_escape             = minetest.formspec_escape
@@ -69,7 +70,7 @@ d = {
 	n_8 = floor(random(0,9))
 }
 d.n = d.n_1.."."..d.n_3..d.n_4..d.n_5..d.n_6..d.n_7..d.n_8
-rawset(_G, "d", d)
+
 --WORLD LINE - number of divergence
 WORLD_LINE = get_worldpath().."/timetrave_metadata.txt"
 --Check if file exists else create a new one
@@ -89,7 +90,7 @@ end
 
 --# DATABASE_FILE - Txt database containing whole data
 DATABASE_FILE = get_worldpath().."/timetravel_phone_database.txt"
-default_DATABASE = {
+DATABASE = {
 	["singleplayer"] = {
 		[10000000] = {
 			received = {
@@ -133,25 +134,21 @@ if f == nil then
 	--This means there is no file, so let's create one
 	--with default values
 	f2 = io.open(DATABASE_FILE,"w")
-	local db = compress(serialize(default_DATABASE))
+	local db = compress(serialize(DATABASE))
 	f2:write(db)
 	f2:close()
 else
 	f = io.open(DATABASE_FILE,"r")
 	db = f:read("*all")
 	if db then
-		DATABASE = deserialize(decompress(db))
-		--if deserialize func can't read db
-		if not DATABASE then
-			DATABASE = default_DATABASE
-		end
+		DATABASE = deserialize(decompress(db)) or DATABASE
 	end
 	f:close()
 end
 	
 --VIDEOS - FIXME instructables.txt
 VIDEOGLRY_FILE = get_worldpath().."/timetravel_video_galery.txt"
-default_VIDEOGLRY = {
+VIDEOGLRY = {
 	{
 		src = "timetravel_video4.png",
 		frames = 12,
@@ -173,17 +170,14 @@ default_VIDEOGLRY = {
 f = io.open(VIDEOGLRY_FILE,"r")
 if f == nil then
 	f2 = io.open(VIDEOGLRY_FILE,"w")
-	local db = compress(serialize(default_VIDEOGLRY))
+	local db = compress(serialize(VIDEOGLRY))
 	f2:write(db)
 	f2:close()
 else
 	f = io.open(VIDEOGLRY_FILE,"r")
 	db = f:read("*all")
 	if db then
-		VIDEOGLRY = deserialize(decompress(db))
-		if not VIDEOGLRY then
-			VIDEOGLRY = default_VIDEOGLRY
-		end
+		VIDEOGLRY = deserialize(decompress(db)) or VIDEOGLRY
 	end
 	f:close()
 end
@@ -191,7 +185,7 @@ end
 PHHandler = {}
 --CREATE NEW PHONES
 
-m_on_newplayer(function(player)
+m_on_joinplayer(function(player)
 	local name = player:get_player_name()
 	local time = get_timeofday()
 	local phone_nb = random(10000000,99999999)
@@ -213,7 +207,7 @@ m_on_newplayer(function(player)
 						message = 'Hi, you don\'t have sent messages!',
 						s = false,
 						t = time,
-						["d"] =get_gametime()
+						["d"] = get_gametime()
 					}
 				},
 				contacts = {
@@ -246,32 +240,8 @@ m_on_newplayer(function(player)
 end)
 local timer = 0
 local timer2 = 0
-m = false --FIXME -- this is a switch for the rendering mode on video player... (using globalsteps or minetest_after)
 register_globalstep(function(dtime)
 	timer = timer + dtime
-	if m then
-		timer2 = timer2 + dtime
-		if timer2 >= 1/12 then
-			timer2 = 0
-			for _,player in ipairs(get_connected_players()) do
-				local name = player:get_player_name()
-				if PHHandler[name]["playing"] then
-					PHHandler[name]["frame"] = PHHandler[name]["frame"] + 1
-					if PHHandler[name]["frame"]  <= PHHandler[name]["video"].frames then
-						show_video(player)
-					else--if not PHHandler[name]["loop"] then
-						PHHandler[name]["playing"] = false
-						PHHandler[name]["frame"] = 1
-						show_video(player)
-					--[[elseif PHHandler[name]["loop"] then
-						PHHandler[name]["playing"] = false
-						show_video(player)
-						PHHandler[name]["playing"] = true]]
-					end
-				end
-			end
-		end
-	end
 	if timer >= 5 then -- Save every 5 sec
 		local db = compress(serialize(DATABASE))
 		local f1 = io.open(DATABASE_FILE,"w")
@@ -849,38 +819,31 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["playing"] = false
 			show_video(player)
 		elseif fields.play then
-			--FIXME Remove this when we choose the default render mode
-			--FIXME Can't stop to play """PHHandler[player_name]["playing"]""" must be a Unique Hash instead bool var
-			if not m then
-				PHHandler[player_name]["playing"] = true
-				local rate = PHHandler[player_name]["video"].framerate or 1/14 -- Frame rate
-				local frame = PHHandler[player_name]["video"].frames
-				local s = 0
-				local hash = get_newhash()
-				PHHandler[player_name]["playing"] = hash
-				for i = 1, frame do
-					minetest_after(s, function()
-						-- the variable hash does not change after function registration so this works!
-						if PHHandler[player_name]["playing"] == hash then
-							show_video(player)
-							if i <= frame then
-								PHHandler[player_name]["frame"] = PHHandler[player_name]["frame"] + 1
-							else
-								PHHandler[player_name]["frame"] = 1
-							end
+			PHHandler[player_name]["playing"] = true
+			local rate = PHHandler[player_name]["video"].framerate or 1/14 -- Frame rate
+			local frame = PHHandler[player_name]["video"].frames
+			local s = 0
+			local hash = get_newhash()
+			PHHandler[player_name]["playing"] = hash
+			for i = 1, frame do
+				minetest_after(s, function()
+					-- the variable hash does not change after function registration so this works!
+					if PHHandler[player_name]["playing"] == hash then
+						show_video(player)
+						if i <= frame then
+							PHHandler[player_name]["frame"] = PHHandler[player_name]["frame"] + 1
+						else
+							PHHandler[player_name]["frame"] = 1
 						end
-					end)
-					s = s + rate
-				end
-				minetest_after(s + rate, function()
-					PHHandler[player_name]["playing"] = false
-					PHHandler[player_name]["frame"] = 1
-					show_video(player)
+					end
 				end)
-			else
-				PHHandler[player_name]["playing"] = true
-				show_video(player)
+				s = s + rate
 			end
+			minetest_after(s + rate, function()
+				PHHandler[player_name]["playing"] = false
+				PHHandler[player_name]["frame"] = 1
+				show_video(player)
+			end)
 		end
 	elseif formname == "time_travel:show_alarm" then
 		if fields.ok or fields.quit then
