@@ -14,7 +14,7 @@ local get_timeofday           = minetest.get_timeofday
 local show_form               = minetest.show_formspec
 local m_play                  = minetest.sound_play
 local m_stop                  = minetest.sound_stop
-local m_on_joinplayer         = minetest.register_on_joinplayer
+local m_on_newplayer         = minetest.register_on_newplayer
 local get_connected_players   = minetest.get_connected_players
 local kick_player             = minetest.kick_player
 local form_escape             = minetest.formspec_escape
@@ -82,20 +82,58 @@ else
 	f = io.open(WORLD_LINE,"r")
 	db = f:read("*all")
 	if db then
-		d = deserialize(decompress(db))
+		d = deserialize(decompress(db)) or d
 	end
 	f:close()
 end
 
 --# DATABASE_FILE - Txt database containing whole data
 DATABASE_FILE = get_worldpath().."/timetravel_phone_database.txt"
+default_DATABASE = {
+	["singleplayer"] = {
+		[10000000] = {
+			received = {
+				{
+					phone = 'Minetest',
+					message = 'Hi,\n you don\'t have any message yet!',
+					s = false,
+					t = get_timeofday(),
+					d = get_gametime()
+				}
+			},
+			sent = {
+				{
+					phone = 'Minetest',
+					message = 'Hi, you don\'t have sent messages!',
+					s = false,
+					t = get_timeofday(),
+					d =get_gametime()
+				}
+			},
+			contacts = {
+				{
+					name = "My Number",
+					phone = 10000000
+				}
+			},
+			config = {
+				alarm_tone = 1,
+				sms_ringtone = 1,
+				theme = 1,
+				vibration = true,
+				silent_mode = false,
+				wallpaper = 1
+			}
+		}
+	}
+}
 --### Check if file exists else create
 f = io.open(DATABASE_FILE,"r")
-
-rawset(_G, "DATABASE", {["singleplayer"] = {[10000000] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = get_timeofday(),d = get_gametime()}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false, t = get_timeofday(),d =get_gametime()}}, contacts = {{name = "My Number",phone = 10000000}}, config = {alarm_tone = 1,sms_ringtone = 1, theme = 1,vibration = true,silent_mode = false,wallpaper = 1} }}})
 if f == nil then
+	--This means there is no file, so let's create one
+	--with default values
 	f2 = io.open(DATABASE_FILE,"w")
-	local db = compress(serialize(DATABASE))
+	local db = compress(serialize(default_DATABASE))
 	f2:write(db)
 	f2:close()
 else
@@ -103,18 +141,39 @@ else
 	db = f:read("*all")
 	if db then
 		DATABASE = deserialize(decompress(db))
+		--if deserialize func can't read db
+		if not DATABASE then
+			DATABASE = default_DATABASE
+		end
 	end
 	f:close()
 end
-
+	
 --VIDEOS - FIXME instructables.txt
 VIDEOGLRY_FILE = get_worldpath().."/timetravel_video_galery.txt"
-VIDEOGLRY = {{src = "timetravel_video4.png",frames = 12, snd = ""},{src = "timetravel_static.png",frames = 24, snd = "timetravel_staticsound"},{src = "timetravel_arested.png",frames = 504, snd = "timetravel_a",framerate = 1/12}}
+default_VIDEOGLRY = {
+	{
+		src = "timetravel_video4.png",
+		frames = 12,
+		snd = ""
+	},
+	{
+		src = "timetravel_static.png",
+		frames = 24,
+		snd = "timetravel_staticsound"
+	},
+	{
+		src = "timetravel_arested.png",
+		frames = 504,
+		snd = "timetravel_a",
+		framerate = 1/12
+	}
+}
 --### Check if file exists else create a new one
 f = io.open(VIDEOGLRY_FILE,"r")
 if f == nil then
 	f2 = io.open(VIDEOGLRY_FILE,"w")
-	local db = compress(serialize(VIDEOGLRY))
+	local db = compress(serialize(default_VIDEOGLRY))
 	f2:write(db)
 	f2:close()
 else
@@ -122,19 +181,57 @@ else
 	db = f:read("*all")
 	if db then
 		VIDEOGLRY = deserialize(decompress(db))
+		if not VIDEOGLRY then
+			VIDEOGLRY = default_VIDEOGLRY
+		end
 	end
 	f:close()
 end
-
 --Phone Handler
 PHHandler = {}
 --CREATE NEW PHONES
-m_on_joinplayer(function(player)
+
+m_on_newplayer(function(player)
 	local name = player:get_player_name()
 	local time = get_timeofday()
 	local phone_nb = random(10000000,99999999)
 	if not DATABASE[name] then
-		DATABASE[name] = {[phone_nb] = {received = {{phone = 'Minetest',message = 'Hi,\n you don\'t have any message yet!',s = false,t = time,["d"] =get_gametime()}},sent = {{phone = 'Minetest',message = 'Hi, you don\'t have sent messages!',s = false,t = time,["d"] =get_gametime()}}, contacts = {{name = "My Number",phone = phone_nb}}, config = {alarm_tone = 1,sms_ringtone = 1, theme = 1,vibration = true,silent_mode = false,wallpaper = 1} }}
+		DATABASE[name] = {
+			[phone_nb] = {
+				received = {
+					{
+						phone = 'Minetest',
+						message = 'Hi,\n you don\'t have any message yet!',
+						s = false,
+						t = time,
+						["d"] = get_gametime()
+					}
+				},
+				sent = {
+					{
+						phone = 'Minetest',
+						message = 'Hi, you don\'t have sent messages!',
+						s = false,
+						t = time,
+						["d"] =get_gametime()
+					}
+				},
+				contacts = {
+					{
+						name = "My Number",
+						phone = phone_nb
+					}
+				},
+				config = {
+					alarm_tone = 1,
+					sms_ringtone = 1,
+					theme = 1,
+					vibration = true,
+					silent_mode = false,
+					wallpaper = 1
+				}
+			}
+		}
 	end
 	--phone handler (not necessary store data on Hard Disc)
 	PHHandler[name] = {}
