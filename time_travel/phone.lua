@@ -6,10 +6,12 @@ local serialize               = minetest.serialize
 local get_worldpath           = minetest.get_worldpath
 local get_gametime            = minetest.get_gametime
 local decompress              = minetest.decompress
+local deserialize             = minetest.deserialize
 local register_globalstep     = minetest.register_globalstep
 local minetest_after          = minetest.after
 local minetest_register_node  = minetest.register_node
-local deserialize             = minetest.deserialize
+local floor                   = math.floor
+local random                  = math.random
 local get_timeofday           = minetest.get_timeofday
 local show_form               = minetest.show_formspec
 local m_play                  = minetest.sound_play
@@ -24,8 +26,6 @@ local revert_actions_by       = minetest.rollback_revert_actions_by
 local register_craftitem      = minetest.register_craftitem
 local p_rcv_fields            = minetest.register_on_player_receive_fields
 local t_insert                = table.insert
-local floor                   = math.floor
-local random                  = math.random
 local char                    = string.char
 
 --           --
@@ -55,38 +55,10 @@ local function get_first_key(T)
 	end
 end
 local function get_newhash()
-	--returns a "random" 4 Bytes Hash
+	--returns a "random" 4 Bytes Hash in the range a-z A-Z 0-9
 	return char(random(48,122))..char(random(48,122))..char(random(48,122))..char(random(48,122))
 end
 
-d = {
-	n_1 = floor(random(0,1)),
-	n_2 = "dot",
-	n_3 = floor(random(0,9)),
-	n_4 = floor(random(0,9)),
-	n_5 = floor(random(0,9)),
-	n_6 = floor(random(0,9)),
-	n_7 = floor(random(0,9)),
-	n_8 = floor(random(0,9))
-}
-d.n = d.n_1.."."..d.n_3..d.n_4..d.n_5..d.n_6..d.n_7..d.n_8
-
---WORLD LINE - number of divergence
-WORLD_LINE = get_worldpath().."/timetrave_metadata.txt"
---Check if file exists else create a new one
-f = io.open(WORLD_LINE,"r")
-if f == nil then
-	f2 = io.open(WORLD_LINE,"w")
-	f2:write(compress(serialize(d)))
-	io.close(f2)
-else
-	f = io.open(WORLD_LINE,"r")
-	db = f:read("*all")
-	if db then
-		d = deserialize(decompress(db)) or d
-	end
-	f:close()
-end
 
 --# DATABASE_FILE - Txt database containing whole data
 DATABASE_FILE = get_worldpath().."/timetravel_phone_database.txt"
@@ -250,63 +222,6 @@ register_globalstep(function(dtime)
 		timer = 0
 	end
 end)
-
-local function time_travel(player,node,pos)
-	--update the world line
-	d = {
-		n_1 = floor(random(0,1)),
-		n_2 = "dot",
-		n_3 = floor(random(0,9)),
-		n_4 = floor(random(0,9)),
-		n_5 = floor(random(0,9)),
-		n_6 = floor(random(0,9)),
-		n_7 = floor(random(0,9)),
-		n_8 = floor(random(0,9))
-	}
-	d.n = d.n_1.."."..d.n_3..d.n_4..d.n_5..d.n_6..d.n_7..d.n_8
-	--save number on a world file
-	local file = io.open(WORLD_LINE,"w")
-	file:write(compress(serialize(d)))
-	if player:get_player_name() == nil then return end
-	--Play sound and make something like Chrono Trigger travel
-	--FIXME try reboot or **update display**
-	kick_player(player:get_player_name(),"Time Traveller, please log again!!!")
-	--[[if node and pos then
-		node = minetest.registered_nodes[node.name]
-		print(dump(node))
-		node.tiles={"(timetravel_texback.png^[combine:200x200:0,0=timetravel_texback.png:1,50=timetravel_"..d.n_1..".png:16,50=timetravel_"..d.n_2..".png:31,50=timetravel_"..d.n_3..".png:46,50=timetravel_"..d.n_4..".png:61,50=timetravel_"..d.n_5..".png:76,50=timetravel_"..d.n_6..".png:91,50=timetravel_"..d.n_7..".png:106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png)^[transformFX","timetravel_textop.png"}
-	end]]
-end	
-
-minetest_register_node("time_travel:div_meter", {
-	description = "Divergence Meter",
-	tiles = {
-		"timetravel_textop.png",
-		"timetravel_textop.png",
-		"timetravel_texfront.png", --right
-		"timetravel_texfront.png", --left
-		"(timetravel_texback.png^[combine:200x200:0,0=timetravel_texback.png:1,50=timetravel_"..d.n_1..".png:16,50=timetravel_"..d.n_2..".png:31,50=timetravel_"..d.n_3..".png:46,50=timetravel_"..d.n_4..".png:61,50=timetravel_"..d.n_5..".png:76,50=timetravel_"..d.n_6..".png:91,50=timetravel_"..d.n_7..".png:106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png)^[transformFX", --back
-		"timetravel_texback.png^[combine:200x200:0,0=timetravel_texback.png:1,50=timetravel_"..d.n_1..".png:16,50=timetravel_"..d.n_2..".png:31,50=timetravel_"..d.n_3..".png:46,50=timetravel_"..d.n_4..".png:61,50=timetravel_"..d.n_5..".png:76,50=timetravel_"..d.n_6..".png:91,50=timetravel_"..d.n_7..".png:106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png", --front
-	},
-
-	diggable = true,
-	drawtype = "nodebox",
-	paramtype = "light",
-	light_source = 10,
-	paramtype2 = "facedir",
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.1875, 0.5, -0.1875, 0.1875}, -- base
-			{-0.5, -0.5, 0, 0.5, 0.1075, 0}, -- Nixie's tubes
-		}
-	},
-	--visual_scale = 0.5,
-	groups = {cracky=3},
-	on_rightclick = function(pos, node, player, itemstack, pointed_thing)
-		time_travel(player,node,pos)
-	end,
-})
 
 function show_apps(player)
 	local phone = get_first_key(DATABASE[player:get_player_name()])
