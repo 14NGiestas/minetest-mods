@@ -74,7 +74,7 @@ else
 end
 
 local function gen_tex(d)
-	return {"(timetravel_texback.png^"..
+	return { "(timetravel_texback.png^"..
 		"[combine:200x200:0,0=timetravel_texback.png:"..
 		"1,50=timetravel_"..d.n_1..".png:"..
 		"16,50=timetravel_"..d.n_2..".png:"..
@@ -84,7 +84,8 @@ local function gen_tex(d)
 		"76,50=timetravel_"..d.n_6..".png:"..
 		"91,50=timetravel_"..d.n_7..".png:"..
 		"106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png)^[transformFX"
-	, --back
+	,
+
 		"timetravel_texback.png^"..			
 		"[combine:200x200:0,0=timetravel_texback.png:"..
 		"1,50=timetravel_"..d.n_1..".png:"..
@@ -94,7 +95,8 @@ local function gen_tex(d)
 		"61,50=timetravel_"..d.n_5..".png:"..
 		"76,50=timetravel_"..d.n_6..".png:"..
 		"91,50=timetravel_"..d.n_7..".png:"..
-		"106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png"} --front
+		"106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png"
+	}
 end
 
 local function time_travel(player,node,pos)
@@ -141,7 +143,7 @@ minetest_register_node("time_travel:div_meter", {
 	description = "Divergence Meter",
 	tiles = {
 		"timetravel_textop.png",
-		"timetravel_textop.png",
+		"timetravel_texbottom.png",
 		"timetravel_texfront.png", --right
 		"timetravel_texfront.png", --left
 	},
@@ -156,6 +158,12 @@ minetest_register_node("time_travel:div_meter", {
 		fixed = {
 			{-0.5, -0.5, -0.1875, 0.5, -0.1875, 0.1875}, -- base
 			{-0.5, -0.5, 0, 0.5, 0.1075, 0}, -- Nixie's tubes
+		}
+	},
+	selection_box = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, -0.1875, 0.5, -0.1875, 0.1875} --base
 		}
 	},
 	--visual_scale = 0.5,
