@@ -4,7 +4,6 @@
 local compress                = minetest.compress
 local serialize               = minetest.serialize
 local get_worldpath           = minetest.get_worldpath
-local get_gametime            = minetest.get_gametime
 local decompress              = minetest.decompress
 local deserialize             = minetest.deserialize
 local register_globalstep     = minetest.register_globalstep
@@ -13,6 +12,7 @@ local minetest_register_node  = minetest.register_node
 local floor                   = math.floor
 local random                  = math.random
 local get_timeofday           = minetest.get_timeofday
+local get_gametime            = minetest.get_gametime
 local show_form               = minetest.show_formspec
 local m_play                  = minetest.sound_play
 local m_stop                  = minetest.sound_stop
@@ -27,6 +27,8 @@ local register_craftitem      = minetest.register_craftitem
 local p_rcv_fields            = minetest.register_on_player_receive_fields
 local t_insert                = table.insert
 local char                    = string.char
+local setting_get             = minetest.setting_get
+local setting_set             = minetest.setting_set
 
 --           --
 -- Utilities --
@@ -68,19 +70,19 @@ DATABASE = {
 			received = {
 				{
 					phone = 'Minetest',
-					message = 'Hi,\n you don\'t have any message yet!',
+					message = "Hi, \n you don't have any message yet!",
 					s = false,
 					t = get_timeofday(),
-					d = get_gametime()
+					d = get_gametime(),
 				}
 			},
 			sent = {
 				{
 					phone = 'Minetest',
-					message = 'Hi, you don\'t have sent messages!',
+				message = "Hi, you don't have sent messages!",
 					s = false,
 					t = get_timeofday(),
-					d =get_gametime()
+					d = get_gametime(),
 				}
 			},
 			contacts = {
@@ -159,33 +161,33 @@ PHHandler = {}
 
 m_on_joinplayer(function(player)
 	local name = player:get_player_name()
-	local time = get_timeofday()
 	local phone_nb = random(10000000,99999999)
 	if not DATABASE[name] then
+		print(get_timeofday(),"HI")
 		DATABASE[name] = {
 			[phone_nb] = {
 				received = {
 					{
 						phone = 'Minetest',
-						message = 'Hi,\n you don\'t have any message yet!',
+						message = "Hi,\n you don't have any message yet!",
 						s = false,
-						t = time,
-						["d"] = get_gametime()
+						t = get_timeofday(),
+						d = get_gametime(),
 					}
 				},
 				sent = {
 					{
 						phone = 'Minetest',
-						message = 'Hi, you don\'t have sent messages!',
+						message = "Hi, you don't have sent messages!",
 						s = false,
-						t = time,
-						["d"] = get_gametime()
+						t = get_timeofday(),
+						d = get_gametime(),
 					}
 				},
 				contacts = {
 					{
 						name = "My Number",
-						phone = phone_nb
+						phone = phone_nb,
 					}
 				},
 				config = {
@@ -194,7 +196,7 @@ m_on_joinplayer(function(player)
 					theme = 1,
 					vibration = true,
 					silent_mode = false,
-					wallpaper = 1
+					wallpaper = 1,
 				}
 			}
 		}
@@ -211,17 +213,19 @@ m_on_joinplayer(function(player)
 	PHHandler[name]["alarmShift"] = 0
 end)
 local timer = 0
-local timer2 = 0
-register_globalstep(function(dtime)
-	timer = timer + dtime
-	if timer >= 5 then -- Save every 5 sec
-		local db = compress(serialize(DATABASE))
-		local f1 = io.open(DATABASE_FILE,"w")
-		f1:write(db)
-		f1:close()
-		timer = 0
-	end
+autosave = coroutine.create(function()
+	register_globalstep(function(dtime)
+		timer = timer + dtime
+		if timer >= 5 then -- Save every 5 sec
+			local db = compress(serialize(DATABASE))
+			local f1 = io.open(DATABASE_FILE,"w")
+			f1:write(db)
+			f1:close()
+			timer = 0
+		end
+	end)
 end)
+coroutine.resume(autosave)
 
 function show_apps(player)
 	local phone = get_first_key(DATABASE[player:get_player_name()])
@@ -334,7 +338,13 @@ local function show_messages(player,pgnum,phone,box)
 				n = 'normal'
 			end
 			local date = os.date("%x", (os.time(os.date("*t")))/time_speed) --convert to local minetest time
-			local time_fmt = string.format("%.2d:%.2d:%.2d", (line.t*86400)/(60*60), (line.t*86400) / 60 % 60, (line.t*86400) % 60)
+			--[[ FIXME This "line.t = line.t or 0" is a Uggly 
+			Hack, for some strange reason the default message: 
+			"You don't sent any msg yet and blablabla",
+			I can't get the time of day for put in table...]]
+			line.t = line.t or 0
+			local time_fmt = string.format("%.2d:%.2d:%.2d", 
+				(line.t*86400)/(60*60), (line.t*86400) / 60 % 60, (line.t*86400) % 60)
 			formspec = formspec.."image[2,"..i..";7.2,2.2;timetravel_button_"..n..".png]"..
 				"label[5,"..(i+0.5)..";"..date..","..time_fmt.."]"..
 				"label[2.5,"..(i+0.5)..";"..line.phone.."]"..
@@ -433,12 +443,12 @@ local function show_alarm(player,phone)
 	end
 	show_form(name, "time_travel:show_alarm",
 		"size[10,10]" ..
-		"background[0,0;10,10;timetravel_phone.png^"..background.."^timetravel_alarmbg.png;false]"..
+		"background       [0,0;10,10;timetravel_phone.png^"..background.."^timetravel_alarmbg.png;false]"..
 		"image_button_exit[2,5.1;6,1;timetravel_alarmok.png;ok;;false;false;]"..
 		"image_button_exit[2,6.1;6,1;timetravel_alarmsnooze.png;snooze;;false;false;]"..
-		"image_button[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
+		"image_button     [3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button     [4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button     [6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
 local function set_alarm(player,phone)
@@ -474,6 +484,29 @@ local function show_camera(player,phone)
 	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	--hide built-in
 	--player:hud_set_flags({crosshair = true, hotbar = false, healthbar = false, wielditem = false, breathbar = false})
+end
+local function photo_galery(player,pgnum)
+	local name = player:get_player_name()
+	local formspec = "size[10,10]" ..
+		"background[0,0;10,10;timetravel_phone.png;false]"..
+		"label[4.2,0.1;Pages "..pgnum.."/"..math.ceil(#VIDEOGLRY/8).."]"
+	local VIDEOGLRY_t  = slice(VIDEOGLRY, 1 + 8*(pgnum - 1), 8*(pgnum), 1)
+	local i = 0.5
+	local n = 2.2
+	for j,line in ipairs(VIDEOGLRY_t) do
+		formspec = formspec..
+			"image["..n..","..i..";3,2;("..line.src.."^[verticalframe:"..line.frames..":1)]"..
+			"image_button["..n..","..i..";3,2;timetravel_tranparency.png;"..j..";;false;false;]" --transparent
+		n = n + 3
+		if n == 8.2 then
+			i = i + 2
+			n = 2.2
+		end
+	end
+	formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	show_form(name, "time_travel:photo_galery", formspec)
 end
 local function show_video(player)
 	local name = player:get_player_name()
@@ -606,7 +639,7 @@ p_rcv_fields(function(player, formname, fields)
 			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		elseif fields["delete2"] then
 			DATABASE[player_name][phone][PHHandler[player_name]["box"]][(page-1)*4+2] = nil
-			table.remove(DATABASE[player_name][phone][PHHandler[player_name]["box"]],(page-1)*4+2)
+			table.remove(DATABASE[player_name][phone][ PHHandler[player_name]["box"] ],(page-1)*4+2)
 			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		elseif fields["delete3"] then
 			DATABASE[player_name][phone][PHHandler[player_name]["box"]][(page-1)*4+3] = nil
@@ -848,19 +881,36 @@ p_rcv_fields(function(player, formname, fields)
 					end
 				end
 			end
-			local time = get_timeofday()
 			local function send() --send message to dest
-				t_insert(DATABASE[dest_player_name][to]["received"],1, {["phone"] = phone,["message"] = body, ["s"] = true, ["t"] = time,["d"] =get_gametime()})
+				t_insert(DATABASE[dest_player_name][to]["received"],1, {
+					phone = phone,
+					message = body,
+					s = true,
+					t = get_timeofday(),
+					d = get_gametime()
+				})
 			end
 			local function sv_copy()--save a copy
-				t_insert(DATABASE[player_name][phone]["sent"],1, {["phone"] = to,["message"] = body, ["s"] = false, ["t"] = time,["d"] =get_gametime()})
+				t_insert(DATABASE[player_name][phone]["sent"],1, {
+					phone = to,
+					message = body,
+					s = false,
+					t = get_timeofday(),
+					d = get_gametime()
+				})
 			end
 			--TRY EXCEPT Lua version
 			local tone = DATABASE[player_name][phone]["config"]["sms_ringtone"]
 			local vibration = DATABASE[player_name][phone]["config"]["vibration"]
 			if not pcall(send) then
 				--Error probably only when user or phone not exists
-				t_insert(DATABASE[player_name][phone]["received"],1, {["phone"] = 'Minetest',["message"] = "Message not sent, reason: player or number incorrect.", ["s"] = true, ["t"] = time,["d"] =get_gametime()})
+				t_insert(DATABASE[player_name][phone]["received"],1, {
+					phone = 'Minetest',
+					message = "Message not sent, reason: player or number incorrect.",
+					s = true,
+					t = get_timeofday(),
+					d = get_gametime()
+				})
 			else
 				if vibration then
 					m_play("timetravel_vibration", {

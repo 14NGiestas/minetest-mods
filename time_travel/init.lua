@@ -1,13 +1,24 @@
-local compress				= minetest.compress
-local serialize			   = minetest.serialize
-local get_worldpath		   = minetest.get_worldpath
-local floor				   = math.floor
-local random				  = math.random
-local decompress			  = minetest.decompress
-local deserialize			 = minetest.deserialize
-local minetest_register_node  = minetest.register_node
+local compress               = minetest.compress
+local serialize	             = minetest.serialize
+local get_worldpath          = minetest.get_worldpath
+local floor                  = math.floor
+local random                 = math.random
+local decompress             = minetest.decompress
+local deserialize            = minetest.deserialize
+local minetest_register_node = minetest.register_node
+local setting_get            = minetest.setting_get
+local setting_set            = minetest.setting_set
+local ls                     = minetest.get_dir_list
+local mkdir                  = minetest.mkdir
+local get_worldpath          = minetest.get_worldpath
+local get_modpath            = minetest.get_modpath
 
-local path = minetest.get_modpath("time_travel")
+--override the screenshot_path
+w_path = get_worldpath()
+mkdir(w_path.."/timetravel_data")
+setting_set("screenshot_path",w_path.."/timetravel_data")
+
+local path = get_modpath("time_travel")
 minetest_register_node("time_travel:apple", {
 	description = "(Gel) Apple",
 	drawtype = "plantlike",
@@ -224,6 +235,7 @@ minetest_register_node("time_travel:div_meter", {
 		end
 	end,
 })
+--dofile(path.."/world_eye.lua")
 dofile(path.."/phone.lua")
 dofile(path.."/furnace.lua")
 

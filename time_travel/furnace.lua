@@ -1,8 +1,4 @@
 --
---Gel itens
---
-
---
 --
 -- Formspecs
 --
