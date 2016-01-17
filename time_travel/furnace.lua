@@ -1,4 +1,4 @@
---
+local find_node = minetest.find_node_near
 --
 -- Formspecs
 --
@@ -231,18 +231,8 @@ minetest.register_abm({
 			print(cooked.item:get_name():find("time_travel"))
 			if cooked.item:get_name():find("time_travel") then
 				-- The mini-black-hole are opened only with a CRT TV near
-				local c_pos = {}
-				for x = -5,5 do
-					for y = -5,5 do
-						for z = -5,5 do
-							c_pos.x = pos.x + x
-							c_pos.y = pos.y + y
-							c_pos.z = pos.z + z
-							if minetest.get_node(c_pos).name == "homedecor:television" then
-								has_CRT = 1
-							end
-						end
-					end
+				if find_node(pos, 5, {"homedecor:television"}) then
+					has_CRT = 1
 				end
 			end
 			if has_CRT == 1 then
