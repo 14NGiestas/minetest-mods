@@ -58,7 +58,7 @@ local inactive_formspec =
 --
 
 local function can_dig(pos, player)
-	local meta = minetest.get_meta(pos);
+	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 	return inv:is_empty("fuel") and inv:is_empty("dst") and inv:is_empty("src")
 end
@@ -146,7 +146,7 @@ minetest.register_node("time_travel:microwavephone_active", {
 				type = "vertical_frames",
 				aspect_w = 120,
 				aspect_h = 120,
-				length = 1.5
+				length = 0.5
 			},
 		}
 	},
@@ -157,6 +157,8 @@ minetest.register_node("time_travel:microwavephone_active", {
 			{-0.5, -0.5, -0.375, 0.5, 0.1875, 0.375}, -- NodeBox1
 		}
 	},
+
+	paramtype = "light",
 	paramtype2 = "facedir",
 	light_source = 8,
 	drop = "time_travel:microwavephone",
@@ -189,9 +191,6 @@ minetest.register_abm({
 	interval = 1.0,
 	chance = 1,
 	action = function(pos, node, active_object_count, active_object_count_wider)
-		--
-		--TODO Check: if "homedecor:television" (or other CRT) then gelfruits and itens(?)
-		--
 		-- Inizialize metadata
 		--
 		local meta = minetest.get_meta(pos)
@@ -215,7 +214,7 @@ minetest.register_abm({
 		local srclist = inv:get_list("src")
 		local fuellist = inv:get_list("fuel")
 		local dstlist = inv:get_list("dst")
-		
+
 		--
 		-- Cooking
 		--
@@ -223,16 +222,40 @@ minetest.register_abm({
 		-- Check if we have cookable content
 		local cooked, aftercooked = minetest.get_craft_result({method = "cooking", width = 1, items = srclist})
 		local cookable = true
-		
 		if cooked.time == 0 then
 			cookable = false
 		end
-		
+		if not (fuellist[1]:is_empty() and srclist[1]:is_empty()) then
+			print(cooked.item:get_name())
+			local has_CRT = 0
+			print(cooked.item:get_name():find("time_travel"))
+			if cooked.item:get_name():find("time_travel") then
+				-- The mini-black-hole are opened only with a CRT TV near
+				local c_pos = {}
+				for x = -5,5 do
+					for y = -5,5 do
+						for z = -5,5 do
+							c_pos.x = pos.x + x
+							c_pos.y = pos.y + y
+							c_pos.z = pos.z + z
+							if minetest.get_node(c_pos).name == "homedecor:television" then
+								has_CRT = 1
+							end
+						end
+					end
+				end
+			end
+			if has_CRT == 1 then
+				cookable = true
+			else
+				cookable = false
+			end
+		end
 		-- Check if we have enough fuel to burn
 		if fuel_time < fuel_totaltime then
 			-- The furnace is currently active and has enough fuel
 			fuel_time = fuel_time + 1
-			
+		
 			-- If there is a cookable item then check if it is ready yet
 			if cookable then
 				src_time = src_time + 1
@@ -250,7 +273,7 @@ minetest.register_abm({
 			if cookable then
 				-- We need to get new fuel
 				local fuel, afterfuel = minetest.get_craft_result({method = "fuel", width = 1, items = fuellist})
-				
+			
 				if fuel.time == 0 then
 					-- No valid fuel in fuel list
 					fuel_totaltime = 0
@@ -259,10 +282,10 @@ minetest.register_abm({
 				else
 					-- Take fuel from fuel list
 					inv:set_stack("fuel", 1, afterfuel.items[1])
-					
+				
 					fuel_totaltime = fuel.time
 					fuel_time = 0
-					
+				
 				end
 			else
 				-- We don't need to get new fuel since there is no cookable item

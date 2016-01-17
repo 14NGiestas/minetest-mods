@@ -12,13 +12,19 @@ local ls                     = minetest.get_dir_list
 local mkdir                  = minetest.mkdir
 local get_worldpath          = minetest.get_worldpath
 local get_modpath            = minetest.get_modpath
+local get_objects            = minetest.get_objects_inside_radius
+local add_node               = minetest.add_node
+local add_entity             = minetest.add_entity
+local dir_to_facedir         = minetest.dir_to_facedir
+local add_item               = minetest.add_item
+local dir_to_wallmounted     = minetest.dir_to_wallmounted
 
 --override the screenshot_path
 w_path = get_worldpath()
 mkdir(w_path.."/timetravel_data")
 setting_set("screenshot_path",w_path.."/timetravel_data")
 
-local path = get_modpath("time_travel")
+
 minetest_register_node("time_travel:apple", {
 	description = "(Gel) Apple",
 	drawtype = "plantlike",
@@ -126,13 +132,14 @@ local function time_travel(player,node,pos)
 	--save number on a world file
 	local file = io.open(WORLD_LINE,"w")
 	file:write(compress(serialize(d)))
-	if player:get_player_name() == nil then return end
-	local objects = minetest.env:get_objects_inside_radius(pos, 0.5)
+
+	local objects = get_objects(pos, 0.5)
 	for _, v in ipairs(objects) do
 		if v:get_entity_name() == "time_travel:div_meter_display" then
 			v:set_properties({textures=gen_tex(d)})
 		end
 	end
+	
 	--Play sound and make something like Chrono Trigger travel
 	
 end
@@ -189,7 +196,7 @@ minetest_register_node("time_travel:div_meter", {
 					 y = under.y - above.y,
 					 z = under.z - above.z}
 
-		local wdir = minetest.dir_to_wallmounted(dir)
+		local wdir = dir_to_wallmounted(dir)
 
 		local placer_pos = placer:getpos()
 		if placer_pos then
@@ -200,22 +207,22 @@ minetest_register_node("time_travel:div_meter", {
 			}
 		end
 
-		local fdir = minetest.dir_to_facedir(dir)
+		local fdir = dir_to_facedir(dir)
 
 		local sign_info
 		if wdir == 0 then
 			--how would you add sign to ceiling?
-			minetest.env:add_item(above, "time_travel:div_meter")
+			add_item(above, "time_travel:div_meter")
 			return ItemStack("")
 		elseif wdir == 1 then
-			minetest.env:add_node(above, {name = "time_travel:div_meter", param2 = fdir})
+			add_node(above, {name = "time_travel:div_meter", param2 = fdir})
 			sign_info = signs_yard[fdir + 1]
 		else
-			minetest.env:add_node(above, {name = "time_travel:div_meter", param2 = fdir})
+			add_node(above, {name = "time_travel:div_meter", param2 = fdir})
 			sign_info = signs_yard[fdir + 1]
 		end
 
-		local text = minetest.env:add_entity({
+		local text = add_entity({
 				x = above.x,
 				y = above.y,
 				z = above.z,
@@ -227,7 +234,7 @@ minetest_register_node("time_travel:div_meter", {
 		return ItemStack("")
 	end,
 	on_destruct = function(pos)
-		local objects = minetest.env:get_objects_inside_radius(pos, 0.5)
+		local objects = get_objects(pos, 0.5)
 		for _, v in ipairs(objects) do
 			if v:get_entity_name() == "time_travel:div_meter_display" then
 				v:remove()
@@ -235,6 +242,7 @@ minetest_register_node("time_travel:div_meter", {
 		end
 	end,
 })
+local path = get_modpath("time_travel")
 --dofile(path.."/world_eye.lua")
 dofile(path.."/phone.lua")
 dofile(path.."/furnace.lua")
