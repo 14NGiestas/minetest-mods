@@ -10,6 +10,7 @@ local register_globalstep     = minetest.register_globalstep
 local minetest_after          = minetest.after
 local minetest_register_node  = minetest.register_node
 local floor                   = math.floor
+local ceil                    = math.ceil
 local random                  = math.random
 local get_timeofday           = minetest.get_timeofday
 local get_gametime            = minetest.get_gametime
@@ -56,13 +57,16 @@ local function get_first_key(T)
 		return key
 	end
 end
+-------------------------------------------
+--         random hash (for videos)      --
+-- 4 Bytes Hash in the range a-z A-Z 0-9 --
+-------------------------------------------
 local function get_newhash()
-	--returns a "random" 4 Bytes Hash in the range a-z A-Z 0-9
 	return char(random(48,122))..char(random(48,122))..char(random(48,122))..char(random(48,122))
 end
 
 
---# DATABASE_FILE - Txt database containing whole data
+--# DATABASE_FILE - Txt database containing whole data phone-related
 DATABASE_FILE = get_worldpath().."/timetravel_phone_database.txt"
 DATABASE = {
 	["singleplayer"] = {
@@ -89,6 +93,11 @@ DATABASE = {
 				{
 					name = "My Number",
 					phone = 10000000
+				}
+			},
+			notes = {
+				{
+					text = "Here you can see your notes."
 				}
 			},
 			config = {
@@ -184,6 +193,11 @@ m_on_joinplayer(function(player)
 						d = get_gametime(),
 					}
 				},
+				notes = {
+					{
+						text = "Here you can see your notes."
+					}
+				},
 				contacts = {
 					{
 						name = "My Number",
@@ -212,6 +226,7 @@ m_on_joinplayer(function(player)
 	PHHandler[name]["alarmHandler"] = false
 	PHHandler[name]["alarmShift"] = 0
 end)
+--Multitreaded Autosave -- I hope that
 local timer = 0
 autosave = coroutine.create(function()
 	register_globalstep(function(dtime)
@@ -227,9 +242,13 @@ autosave = coroutine.create(function()
 end)
 coroutine.resume(autosave)
 
+--------------------------
+--     Shows apps       --
+--------------------------
 function show_apps(player)
-	local phone = get_first_key(DATABASE[player:get_player_name()])
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"]["wallpaper"]..".png"
+	local name = player:get_player_name()
+	local phone = get_first_key(DATABASE[name])
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"]["wallpaper"]..".png"
 	show_form(player:get_player_name(), "time_travel:phoneform",
 		"size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
@@ -243,7 +262,7 @@ function show_apps(player)
 		"image_button[2,4.5;2,2;timetravel_phone_calc.png;calc;\n\n\n\nCalculator]"..
 		"image_button[4,4.5;2,2;timetravel_phone_calendar.png;calendar;\n\n\n\nCalendar]"..
 		"image_button[6,4.5;2,2;timetravel_phone_camera.png;camera;\n\n\n\nCamera]"..
-		"image_button[2,6.5;2,2;timetravel_phone_.png;3;\n\n\n\n]"..
+		"image_button[2,6.5;2,2;timetravel_phone_notes.png;notes;\n\n\n\nNotes]"..
 		"image_button[4,6.5;2,2;timetravel_phone_contacts.png;contacts;\n\n\n\nContacts]"..
 		"image_button[6,6.5;2,2;timetravel_phone_conf.png;3;\n\n\n\nSettings]"..
 		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]".. --close phone
@@ -251,11 +270,87 @@ function show_apps(player)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]".. --close all apps and show background
 		"")
 end
+----------------------
+-- Show your notes  --
+----------------------
+local function show_notes(player,pgnum,phone)
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
+	if phone then
+		local NOTES = DATABASE[name][phone]["notes"]
+		local num_pags =  ceil(#NOTES/4)
+		if num_pags == 0 then
+			num_pags = 1
+		end
+		NOTES  = slice(NOTES, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
+		local formspec = "size[10,10]"..
+			"label[4.2,0.1;Pages "..pgnum.."/"..num_pags.."]"..
+			"background[0,0;10,10;timetravel_phone.png^"..background.."]"
+		local i = 0.5
+		for j,line in ipairs(NOTES) do
+			formspec = formspec.."image[2,"..i..";7.2,2.2;timetravel_button_normal.png]"..
+				"label[3.5,"..(i+0.9)..";"..string.sub(string.gsub(line.text, "\n", " "),1,20).."...]"..
+				"image_button[2,"..i..";6,2;timetravel_tranparency.png;"..j..";;false;false;]"..
+				"image_button[7,"..(i+1)..";0.6,0.6;timetravel_phone_delete.png;delete"..j..";;false;false;]"
+			i = i + 2
+		end
+		formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+		show_form(name, "time_travel:show_notes", formspec)
+	else
+		local formspec = "size[10,10]"..
+			"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
+			"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+		show_form(name, "time_travel:show_notes", formspec)
+	end
+end
+---------------------------
+-- Shows a selected note --
+---------------------------
+local function show_note(player,pgnum,phone,field)
+	local name = player:get_player_name()
+	--*** TODO BEAUTYFY THIS ***
+	if phone then
+		local NOTES = DATABASE[name][phone]["notes"]
+		local num_pags = ceil(#NOTES/4)
+		if num_pags == 0 then
+			num_pags = 1
+		end
+		NOTES = slice(NOTES, 1 + 4*(pgnum - 1), 4*(pgnum), 1)
+		NOTES = NOTES[field]
+		local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
+		local formspec = "size[10,10]"..
+			"background[0,0;10,10;timetravel_phone.png^"..background.."]"
+		if NOTES then
+			formspec = formspec..
+				"textlist[2,1;5.8,7.4;;"
+			local msg = form_escape(NOTES.text)
+			for i = 1,#msg do
+				if i % 37 == 0 then
+					formspec = formspec..msg:sub(i,i)..","
+				else
+					formspec = formspec..msg:sub(i,i)
+				end
+			end
+		end
+		formspec = formspec..";]image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+		show_form(name, "time_travel:note", formspec)
+	end
+end
+--------------------------
+-- Shows a selected msg --
+--------------------------
 local function show_msg(player,pgnum,phone,box,field)
+	local name = player:get_player_name()
 	--*** TODO BEAUTYFY THIS ***
 	if phone and box then
-		local message_book = DATABASE[player:get_player_name()][phone][box]
-		local num_pags = math.ceil(#message_book/4)
+		local message_book = DATABASE[name][phone][box]
+		local num_pags = ceil(#message_book/4)
 		if num_pags == 0 then
 			num_pags = 1
 		end
@@ -287,9 +382,12 @@ local function show_msg(player,pgnum,phone,box,field)
 		formspec = formspec..";]image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
 			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
 			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
-		show_form(player:get_player_name(), "time_travel:msg", formspec)
+		show_form(name, "time_travel:msg", formspec)
 	end
 end
+-------------------------------------
+--    Shows main msg menu          -- 
+-------------------------------------
 local function messages_menu(player,phone)
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	local formspec = "size[10,10]"..
@@ -302,6 +400,9 @@ local function messages_menu(player,phone)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 	show_form(player:get_player_name(), "time_travel:messages_menu", formspec)
 end
+-------------------------------------
+--    Shows compose msg dialog     -- 
+-------------------------------------
 local function show_compose_msg(player,number,phone)
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	local formspec = "size[10,10]"..
@@ -315,12 +416,14 @@ local function show_compose_msg(player,number,phone)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 	show_form(player:get_player_name(), "time_travel:messages_compose_menu", formspec)
 end
-
+-------------------------------------
+--          Shows messages         -- 
+-------------------------------------
 local function show_messages(player,pgnum,phone,box)
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	if phone and box then
 		local message_book = DATABASE[player:get_player_name()][phone][box]
-		local num_pags =  math.ceil(#DATABASE[player:get_player_name()][phone][box]/4)
+		local num_pags =  ceil(#message_book/4)
 		if num_pags == 0 then
 			num_pags = 1
 		end
@@ -366,6 +469,9 @@ local function show_messages(player,pgnum,phone,box)
 		show_form(player:get_player_name(), "time_travel:messages", formspec)
 	end
 end
+-------------------------------------
+--  TODO     Shows your calls         -- 
+-------------------------------------
 local function show_calls(player,phone)
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	show_form(player:get_player_name(), "time_travel:calls",
@@ -376,6 +482,9 @@ local function show_calls(player,phone)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
+-------------------------------------
+--   TODO Shows the Contacts Screen    -- 
+-------------------------------------
 local function show_contacts(player,phone)
 	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
 	show_form(player:get_player_name(), "time_travel:contacts",
@@ -386,9 +495,13 @@ local function show_contacts(player,phone)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
+-------------------------------------
+-- That shows the "Main" Screen   -- 
+-------------------------------------
 local function show_bg(player,phone)
 	local time = get_timeofday()
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	local c_time = get_timeofday()*86400
 	local digit_1 = floor((c_time/(60*60))/10)
 	local digit_2 = floor(c_time/(60*60) - digit_1*10)
@@ -407,11 +520,14 @@ local function show_bg(player,phone)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
+-------------------------------------
+--    Shows the Video Galery       -- 
+-------------------------------------
 local function video_galery(player,pgnum)
 	local name = player:get_player_name()
 	local formspec = "size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png;false]"..
-		"label[4.2,0.1;Pages "..pgnum.."/"..math.ceil(#VIDEOGLRY/8).."]"
+		"label[4.2,0.1;Pages "..pgnum.."/"..ceil(#VIDEOGLRY/8).."]"
 	local VIDEOGLRY_t  = slice(VIDEOGLRY, 1 + 8*(pgnum - 1), 8*(pgnum), 1)
 	local i = 0.5
 	local n = 2.2
@@ -430,6 +546,9 @@ local function video_galery(player,pgnum)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 	show_form(name, "time_travel:video_galery", formspec)
 end
+-------------------------------------
+--    Shows the alarm ringing      -- 
+-------------------------------------
 local function show_alarm(player,phone)
 	local name = player:get_player_name()
 	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
@@ -451,6 +570,9 @@ local function show_alarm(player,phone)
 		"image_button     [6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
+-------------------------------------
+--    Shows the set alarm screen   -- 
+-------------------------------------
 local function set_alarm(player,phone)
 	local name = player:get_player_name()
 	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
@@ -489,7 +611,7 @@ local function photo_galery(player,pgnum)
 	local name = player:get_player_name()
 	local formspec = "size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png;false]"..
-		"label[4.2,0.1;Pages "..pgnum.."/"..math.ceil(#VIDEOGLRY/8).."]"
+		"label[4.2,0.1;Pages "..pgnum.."/"..ceil(#VIDEOGLRY/8).."]"
 	local VIDEOGLRY_t  = slice(VIDEOGLRY, 1 + 8*(pgnum - 1), 8*(pgnum), 1)
 	local i = 0.5
 	local n = 2.2
@@ -508,6 +630,9 @@ local function photo_galery(player,pgnum)
 		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 	show_form(name, "time_travel:photo_galery", formspec)
 end
+-------------------------------------
+--     Shows the video player      -- 
+-------------------------------------
 local function show_video(player)
 	local name = player:get_player_name()
 	local videosrc = PHHandler[name]["video"].src
@@ -581,13 +706,17 @@ register_craftitem("time_travel:phone", {
 p_rcv_fields(function(player, formname, fields)
 	print(dump(fields))
 	local player_name = player:get_player_name()
-	local phone = get_first_key(DATABASE[player:get_player_name()])
+	local phone = get_first_key(DATABASE[player_name])
 	if not player:get_wielded_item() == "time_travel:phone" then return end
 	local page = PHHandler[player_name]["page"]
 	if formname == "time_travel:phoneform" then -- Replace this with your form name
 		if fields.messages then
 			--messages screen
 			messages_menu(player,phone)
+		elseif fields.notes then
+			--show notes
+			show_notes(player,1,phone)
+			print("Heey")
 		elseif fields.videos then
 			--show_video(player,PHHandler[player_name]["video"].src)
 			video_galery(player,page)
@@ -608,7 +737,9 @@ p_rcv_fields(function(player, formname, fields)
 		end
 	elseif formname == "time_travel:messages" then
 		local page = PHHandler[player_name]["page"]
-		local num_pags =  math.ceil(#DATABASE[player_name][phone][PHHandler[player_name]["box"]]/4)
+		local box = PHHandler[player_name]["box"]
+		local data = DATABASE[player_name][phone][box]
+		local num_pags =  ceil(#data/4)
 		-- if the list are empty so we have just one page
 		if num_pags == 0 then
 			num_pags = 1
@@ -663,7 +794,67 @@ p_rcv_fields(function(player, formname, fields)
 			messages_menu(player,phone)
 		elseif fields.p then
 			--just the background
-			show_bg(player)
+			show_bg(player,phone)
+		end
+	elseif formname == "time_travel:show_notes" then
+		local page = PHHandler[player_name]["page"]
+		local data = DATABASE[player_name][phone]["notes"]
+		local num_pags =  ceil(#data/4)
+		-- if the list are empty so we have just one page
+		if num_pags == 0 then
+			num_pags = 1
+		end
+		if fields.key_down then
+			if page < num_pags then
+				page = page + 1
+			else
+				page = num_pags
+			end
+			PHHandler[player_name]["page"] = page
+			show_notes(player,page,phone)
+		end
+		if fields.key_up then
+			if page > 1 then
+				page = page - 1
+			else
+				page = 1
+			end
+			PHHandler[player_name]["page"] = page
+			show_notes(player,page,phone)
+		end
+		if fields["delete1"] then
+			--Which one I must use?...
+			--FIXME remove the last one remaining msg it's not possible SOMETIMES...
+			DATABASE[player_name][phone]["notes"][(page-1)*4+1] = nil
+			table.remove(DATABASE[player_name][phone]["notes"],(page-1)*4+1)
+			show_notes(player,page,phone)
+		elseif fields["delete2"] then
+			DATABASE[player_name][phone]["notes"][(page-1)*4+2] = nil
+			table.remove(DATABASE[player_name][phone]["notes"],(page-1)*4+2)
+			show_notes(player,page,phone)
+		elseif fields["delete3"] then
+			DATABASE[player_name][phone]["notes"][(page-1)*4+3] = nil
+			table.remove(DATABASE[player_name][phone]["notes"],(page-1)*4+3)
+			show_messages(player,page,phone)
+		elseif fields["delete4"] then
+			DATABASE[player_name][phone]["notes"][(page-1)*4+4] = nil
+			table.remove(DATABASE[player_name][phone]["notes"],(page-1)*4+4)
+			show_notes(player,page,phone)
+		end
+		if fields["1"] then
+			show_note(player,page,phone,1)
+		elseif fields["2"] then
+			show_note(player,page,phone,2)
+		elseif fields["3"] then
+			show_note(player,page,phone,3)
+		elseif fields["4"] then
+			show_note(player,page,phone,4)
+		end
+		if fields.o then
+			show_apps(player)
+		elseif fields.p then
+			--just the background
+			show_bg(player,phone)
 		end
 	elseif formname == "time_travel:calls" then
 		if fields.o then
@@ -678,6 +869,13 @@ p_rcv_fields(function(player, formname, fields)
 		elseif fields.p then
 			--just the background
 			show_apps(player)
+		end
+	elseif formname == "time_travel:note" then
+		if fields.p then
+			--just the background
+			show_apps(player)
+		elseif fields.o then
+			show_notes(player,1,phone)
 		end
 	elseif formname == "time_travel:msg" then
 		if fields.p then

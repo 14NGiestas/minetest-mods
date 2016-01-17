@@ -18,6 +18,7 @@ local add_entity             = minetest.add_entity
 local dir_to_facedir         = minetest.dir_to_facedir
 local add_item               = minetest.add_item
 local dir_to_wallmounted     = minetest.dir_to_wallmounted
+local reg_craft              = minetest.register_craft
 
 --override the screenshot_path
 w_path = get_worldpath()
@@ -54,7 +55,7 @@ minetest_register_node("time_travel:apple", {
 		end
 	end,
 })
-minetest.register_craft({
+reg_craft({
 	type = "cooking",
 	output = "time_travel:apple",
 	recipe = "default:apple",
