@@ -226,17 +226,13 @@ minetest.register_abm({
 			cookable = false
 		end
 		if not (fuellist[1]:is_empty() and srclist[1]:is_empty()) then
-			local has_CRT = 0
 			if cooked.item:get_name():find("time_travel") then
 				-- The mini-black-hole are opened only with a CRT TV near
 				if find_node(pos, 5, {"homedecor:television"}) then
-					has_CRT = 1
+					cookable = true
+				else
+					cookable = false
 				end
-			end
-			if has_CRT == 1 then
-				cookable = true
-			else
-				cookable = false
 			end
 		end
 		-- Check if we have enough fuel to burn

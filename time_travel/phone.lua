@@ -62,7 +62,7 @@ end
 -- 4 Bytes Hash in the range a-z A-Z 0-9 --
 -------------------------------------------
 local function get_newhash()
-	return char(random(48,122))..char(random(48,122))..char(random(48,122))..char(random(48,122))
+	return char(random(48,122),random(48,122),random(48,122),random(48,122))
 end
 
 
@@ -256,7 +256,7 @@ function show_apps(player)
 		"image_button[4,0.5;2,2;timetravel_phone_calls.png;calls;\n\n\n\nCalls]"..
 		"image_button[4,0.5;2,2;timetravel_phone_dialling.png;dial;\n\n\n\nPhone]"..
 		"image_button[6,0.5;2,2;timetravel_phone_calls.png;calls;\n\n\n\nCalls]"..
-		"image_button[2,2.5;2,2;timetravel_phone_photoglry.png;1;\n\n\n\nPhotos]"..
+		"image_button[2,2.5;2,2;timetravel_phone_photoglry.png;photos;\n\n\n\nPhotos]"..
 		"image_button[4,2.5;2,2;timetravel_phone_videos.png;videos;\n\n\n\nVideos]"..				
 		"image_button[6,2.5;2,2;timetravel_phone_alarm.png;alarm;\n\n\n\nAlarm]"..			
 		"image_button[2,4.5;2,2;timetravel_phone_calc.png;calc;\n\n\n\nCalculator]"..
@@ -264,10 +264,10 @@ function show_apps(player)
 		"image_button[6,4.5;2,2;timetravel_phone_camera.png;camera;\n\n\n\nCamera]"..
 		"image_button[2,6.5;2,2;timetravel_phone_notes.png;notes;\n\n\n\nNotes]"..
 		"image_button[4,6.5;2,2;timetravel_phone_contacts.png;contacts;\n\n\n\nContacts]"..
-		"image_button[6,6.5;2,2;timetravel_phone_conf.png;3;\n\n\n\nSettings]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]".. --close phone
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]".. --Apps Menu x close
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]".. --close all apps and show background
+		"image_button[6,6.5;2,2;timetravel_phone_conf.png;settings;\n\n\n\nSettings]"..
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]".. --close phone
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]".. --Apps Menu x close
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]".. --close all apps and show background
 		"")
 end
 ----------------------
@@ -294,16 +294,11 @@ local function show_notes(player,pgnum,phone)
 				"image_button[7,"..(i+1)..";0.6,0.6;timetravel_phone_delete.png;delete"..j..";;false;false;]"
 			i = i + 2
 		end
-		formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
-		show_form(name, "time_travel:show_notes", formspec)
-	else
-		local formspec = "size[10,10]"..
-			"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-			"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+		formspec = formspec..
+			"image_button[6.6,7;1.5,1.5;timetravel_phone_add.png;new_note;;false;false;]"..
+			"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+			"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 		show_form(name, "time_travel:show_notes", formspec)
 	end
 end
@@ -337,10 +332,27 @@ local function show_note(player,pgnum,phone,field)
 			end
 		end
 		formspec = formspec..";]image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+			"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 		show_form(name, "time_travel:note", formspec)
 	end
+end
+
+-------------------------------------
+--    Shows compose note dialog    -- 
+-------------------------------------
+local function compose_note(player,phone)
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
+	local formspec = "size[10,10]"..
+		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
+		"textarea[2.3,1.8;6,6.8;time_travel:body_text;Text:;]"..
+		"image_button[2,7.7;3,0.9;timetravel_phone_cancel.png;CANCEL;]"..
+		"image_button[5,7.7;3,0.9;timetravel_msg_send.png;OK;]"..
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	show_form(name, "time_travel:compose_note", formspec)
 end
 --------------------------
 -- Shows a selected msg --
@@ -362,7 +374,7 @@ local function show_msg(player,pgnum,phone,box,field)
 		elseif box == "received" then
 			deco = "From"
 		end
-		local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
+		local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 		local formspec = "size[10,10]"..
 			"background[0,0;10,10;timetravel_phone.png^"..background.."]"
 		if message_text then
@@ -380,8 +392,8 @@ local function show_msg(player,pgnum,phone,box,field)
 			end
 		end
 		formspec = formspec..";]image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+			"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 		show_form(name, "time_travel:msg", formspec)
 	end
 end
@@ -389,40 +401,43 @@ end
 --    Shows main msg menu          -- 
 -------------------------------------
 local function messages_menu(player,phone)
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	local formspec = "size[10,10]"..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
 		"image_button[2,0.5;6,2;timetravel_new_msg.png;3;]"..
 		"image_button[2,2.5;6,2;timetravel_rcvdbox.png;2;]"..
 		"image_button[2,4.5;6,2;timetravel_sentbox.png;1;]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
-	show_form(player:get_player_name(), "time_travel:messages_menu", formspec)
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	show_form(name, "time_travel:messages_menu", formspec)
 end
 -------------------------------------
 --    Shows compose msg dialog     -- 
 -------------------------------------
 local function show_compose_msg(player,number,phone)
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	local formspec = "size[10,10]"..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
 		"field[2.3,0.8;6,1;time_travel:dest_msg;To:;"..number.."]"..
 		"textarea[2.3,1.8;6,6.8;time_travel:body_msg;Message:;]"..		
-		"image_button[2,7.7;3,0.9;timetravel_msg_canc.png;CANCEL;]"..
+		"image_button[2,7.7;3,0.9;timetravel_phone_cancel.png;CANCEL;]"..
 		"image_button[5,7.7;3,0.9;timetravel_msg_send.png;OK;]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
-	show_form(player:get_player_name(), "time_travel:messages_compose_menu", formspec)
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	show_form(name, "time_travel:messages_compose_menu", formspec)
 end
 -------------------------------------
 --          Shows messages         -- 
 -------------------------------------
 local function show_messages(player,pgnum,phone,box)
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	if phone and box then
-		local message_book = DATABASE[player:get_player_name()][phone][box]
+		local message_book = DATABASE[name][phone][box]
 		local num_pags =  ceil(#message_book/4)
 		if num_pags == 0 then
 			num_pags = 1
@@ -443,7 +458,8 @@ local function show_messages(player,pgnum,phone,box)
 			local date = os.date("%x", (os.time(os.date("*t")))/time_speed) --convert to local minetest time
 			--[[ FIXME This "line.t = line.t or 0" is a Uggly 
 			Hack, for some strange reason the default message: 
-			"You don't sent any msg yet and blablabla",
+			"You don't sent any msg yet and blablabla" do not
+			has the "t" var on table,
 			I can't get the time of day for put in table...]]
 			line.t = line.t or 0
 			local time_fmt = string.format("%.2d:%.2d:%.2d", 
@@ -456,43 +472,38 @@ local function show_messages(player,pgnum,phone,box)
 				"image_button[7,"..(i+1)..";0.6,0.6;timetravel_phone_delete.png;delete"..j..";;false;false;]"
 			i = i + 2
 		end
-		formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
-		show_form(player:get_player_name(), "time_travel:messages", formspec)
-	else
-		local formspec = "size[10,10]"..
-			"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-			"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
-		show_form(player:get_player_name(), "time_travel:messages", formspec)
+		formspec = formspec.."image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+			"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+			"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+		show_form(name, "time_travel:messages", formspec)
 	end
 end
 -------------------------------------
---  TODO     Shows your calls         -- 
+--  TODO     Shows your calls      -- 
 -------------------------------------
 local function show_calls(player,phone)
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
-	show_form(player:get_player_name(), "time_travel:calls",
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
+	show_form(name, "time_travel:calls",
 		"size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
 -------------------------------------
 --   TODO Shows the Contacts Screen    -- 
 -------------------------------------
 local function show_contacts(player,phone)
-	local background = "timetravel_bg"..DATABASE[player:get_player_name()][phone]["config"].wallpaper..".png"
-	show_form(player:get_player_name(), "time_travel:contacts",
+	local name = player:get_player_name()
+	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
+	show_form(name, "time_travel:contacts",
 		"size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
 -------------------------------------
@@ -507,7 +518,7 @@ local function show_bg(player,phone)
 	local digit_2 = floor(c_time/(60*60) - digit_1*10)
 	local digit_3 = floor((c_time / 60 % 60)/10)
 	local digit_4 = floor(c_time / 60 % 60 - digit_3*10)
-	show_form(player:get_player_name(), "time_travel:bg",
+	show_form(name, "time_travel:bg",
 		"size[10,10]" ..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
 		"image       [2.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_1.."]"..--11px Height for each frame
@@ -515,9 +526,9 @@ local function show_bg(player,phone)
 		"image       [4.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:10]".. --separator is 10
 		"image       [5.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_3.."]"..
 		"image       [6.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_4.."]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
 -------------------------------------
@@ -541,9 +552,9 @@ local function video_galery(player,pgnum)
 			n = 2.2
 		end
 	end
-	formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	formspec = formspec.."image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 	show_form(name, "time_travel:video_galery", formspec)
 end
 -------------------------------------
@@ -596,9 +607,9 @@ local function set_alarm(player,phone)
 		"image       [5.5,5.5;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_3.."]"..
 		"image       [6.5,5.5;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_4.."]"..
 		"image_button[6,6.65;1,1;timetravel_phone_downarrow.png;down2;;false;false;]"..
-		"image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
+		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
 local function show_camera(player,phone)
@@ -625,9 +636,9 @@ local function photo_galery(player,pgnum)
 			n = 2.2
 		end
 	end
-	formspec = formspec.."image_button_exit[3,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.5,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
+	formspec = formspec.."image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
 	show_form(name, "time_travel:photo_galery", formspec)
 end
 -------------------------------------
@@ -702,7 +713,9 @@ register_craftitem("time_travel:phone", {
 		--revert_actions_by("player:"..player:get_player_name(), 5) -- hours*minutes*seconds
 	end,
 })
-
+------------------------------
+-- On player receive fields --
+------------------------------
 p_rcv_fields(function(player, formname, fields)
 	print(dump(fields))
 	local player_name = player:get_player_name()
@@ -710,30 +723,46 @@ p_rcv_fields(function(player, formname, fields)
 	if not player:get_wielded_item() == "time_travel:phone" then return end
 	local page = PHHandler[player_name]["page"]
 	if formname == "time_travel:phoneform" then -- Replace this with your form name
+		----------------------
+		--      Messages    --
+		----------------------
 		if fields.messages then
-			--messages screen
 			messages_menu(player,phone)
+		----------------------
+		--       Notes      --
+		----------------------
 		elseif fields.notes then
-			--show notes
 			show_notes(player,1,phone)
-			print("Heey")
+		----------------------
+		--      Videos      --
+		----------------------
 		elseif fields.videos then
-			--show_video(player,PHHandler[player_name]["video"].src)
 			video_galery(player,page)
+		----------------------
+		--      Calls       --
+		----------------------
 		elseif fields.calls then
 			show_calls(player,phone)
+		----------------------
+		--     Contatcts    --
+		----------------------
 		elseif fields.contacts then
-			--contacts screen
 			show_contacts(player,phone)
+		----------------------
+		--      Alarm       --
+		----------------------
 		elseif fields.alarm then
 			set_alarm(player,phone)
+		----------------------
+		--     Camera       --
+		----------------------
 		elseif fields.camera then
 			show_camera(player,phone)
+		----------------------
+		--    Background    --
+		----------------------
 		elseif fields.p then
-			--just the background
 			show_bg(player,phone)
-		elseif fields.o then
-			show_apps(player)
 		end
 	elseif formname == "time_travel:messages" then
 		local page = PHHandler[player_name]["page"]
@@ -803,6 +832,9 @@ p_rcv_fields(function(player, formname, fields)
 		-- if the list are empty so we have just one page
 		if num_pags == 0 then
 			num_pags = 1
+		end
+		if fields.new_note then
+			compose_note(player,phone)
 		end
 		if fields.key_down then
 			if page < num_pags then
@@ -999,10 +1031,13 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["alarmHandler"] = false
 			PHHandler[player_name]["alarmShift"] = 0
 		elseif fields.snooze then
-			minetest_after(10,show_alarm,player,phone)
+			--FIXME It aren't working
+			minetest_after(3,show_alarm,player,phone)
 			if PHHandler[player_name]["alarmHandler"] then
 				 m_stop(PHHandler[player_name]["alarmHandler"])
 			end
+			PHHandler[player_name]["alarmHandler"] = false
+			PHHandler[player_name]["alarmShift"] = 0
 		end
 	elseif formname == "time_travel:set_alarm" then
 		--if there's any alarm playing
@@ -1010,7 +1045,6 @@ p_rcv_fields(function(player, formname, fields)
 		if PHHandler[player_name]["alarmHandler"] then
 			show_alarm(player,phone)
 		else
-			--FIXME SET ALARM DIALOG
 			local time_alarm = get_timeofday()*86400 + PHHandler[player_name]["alarmShift"]
 			if fields.up1 then
 				PHHandler[player_name]["alarmShift"] = PHHandler[player_name]["alarmShift"] + 60*60
@@ -1048,8 +1082,6 @@ p_rcv_fields(function(player, formname, fields)
 			if fields.p then
 				show_bg(player,phone)
 			end
-
-
 		end
 	elseif formname == "time_travel:messages_compose_menu" then
 		if fields.o or fields.CANCEL then
@@ -1125,6 +1157,18 @@ p_rcv_fields(function(player, formname, fields)
 				print("strange error!!!")
 			end
 			messages_menu(player,phone)
+		end
+	elseif formname == "time_travel:compose_note" then
+		if fields.o or fields.CANCEL then
+			show_notes(player,1,phone)
+		elseif fields.p then
+			--just the background
+			show_apps(player)
+		elseif fields.OK then
+			t_insert(DATABASE[player_name][phone]["notes"],1, {
+				text = fields["time_travel:body_text"]
+			})
+			show_notes(player,1,phone)
 		end
 	end
 		

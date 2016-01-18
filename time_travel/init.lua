@@ -116,7 +116,6 @@ local function gen_tex(d)
 		"106,50=timetravel_"..d.n_8..".png^timetravel_texfront.png"
 	}
 end
-
 local function time_travel(player,node,pos)
 	--update the world line
 	d = {
