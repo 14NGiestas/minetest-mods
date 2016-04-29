@@ -30,10 +30,11 @@ local t_insert                = table.insert
 local char                    = string.char
 local setting_get             = minetest.setting_get
 local setting_set             = minetest.setting_set
+local find_node               = minetest.find_node_near
 
---           --
+---------------
 -- Utilities --
---           --
+---------------
 
 -------------------------
 --slice tables utility --
@@ -65,8 +66,9 @@ local function get_newhash()
 	return char(random(48,122),random(48,122),random(48,122),random(48,122))
 end
 
-
---# DATABASE_FILE - Txt database containing whole data phone-related
+-----------------------------------------------------------------------
+--  DATABASE_FILE - Txt database containing whole data phone-related --
+-----------------------------------------------------------------------
 DATABASE_FILE = get_worldpath().."/timetravel_phone_database.txt"
 DATABASE = {
 	["singleplayer"] = {
@@ -166,8 +168,8 @@ else
 end
 --Phone Handler
 PHHandler = {}
---CREATE NEW PHONES
 
+--CREATE NEW PHONES
 m_on_joinplayer(function(player)
 	local name = player:get_player_name()
 	local phone_nb = random(10000000,99999999)
@@ -220,11 +222,11 @@ m_on_joinplayer(function(player)
 	PHHandler[name]["frame"] = 1
 	PHHandler[name]["playing"] = false
 	PHHandler[name]["video"] = VIDEOGLRY[1]
-	--PHHandler[name]["loop"] = false
 	PHHandler[name]["page"] = 1
 	PHHandler[name]["box"] = "received"
 	PHHandler[name]["alarmHandler"] = false
 	PHHandler[name]["alarmShift"] = 0
+	PHHandler[name]["showing_background"] = false
 end)
 --Multitreaded Autosave -- I hope that
 local timer = 0
@@ -270,6 +272,23 @@ function show_apps(player)
 		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]".. --close all apps and show background
 		"")
 end
+
+----------------------
+-- Dialling screen  --
+----------------------
+local function dialling_screen(player)
+	local name = player:get_player_name()
+	--TODO: make this later
+end
+----------------------
+--    Calculator    --
+----------------------
+local function dialling_screen(player)
+	local name = player:get_player_name()
+	local formspec = "size[10,10]"..
+		"background[0,0;10,10;timetravel_phone.png]"
+	--TODO: stop been a lazy boy and start to code this
+end
 ----------------------
 -- Show your notes  --
 ----------------------
@@ -291,11 +310,11 @@ local function show_notes(player,pgnum,phone)
 			formspec = formspec.."image[2,"..i..";7.2,2.2;timetravel_button_normal.png]"..
 				"label[3.5,"..(i+0.9)..";"..string.sub(string.gsub(line.text, "\n", " "),1,20).."...]"..
 				"image_button[2,"..i..";6,2;timetravel_tranparency.png;"..j..";;false;false;]"..
-				"image_button[7,"..(i+1)..";0.6,0.6;timetravel_phone_delete.png;delete"..j..";;false;false;]"
+				"image_button[7,"..(i+0.75)..";0.6,0.6;timetravel_phone_delete.png;delete"..j..";;false;false;]"
 			i = i + 2
 		end
 		formspec = formspec..
-			"image_button[6.6,7;1.5,1.5;timetravel_phone_add.png;new_note;;false;false;]"..
+			"image_button[2,7;1.5,1.5;timetravel_phone_add.png;new_note;;false;false;]"..
 			"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
 			"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
 			"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"
@@ -346,7 +365,7 @@ local function compose_note(player,phone)
 	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	local formspec = "size[10,10]"..
 		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-		"textarea[2.3,1.8;6,6.8;time_travel:body_text;Text:;]"..
+		"textarea[2.3,0.8;6,7;time_travel:body_text;Text:;]"..
 		"image_button[2,7.7;3,0.9;timetravel_phone_cancel.png;CANCEL;]"..
 		"image_button[5,7.7;3,0.9;timetravel_msg_send.png;OK;]"..
 		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
@@ -464,7 +483,8 @@ local function show_messages(player,pgnum,phone,box)
 			line.t = line.t or 0
 			local time_fmt = string.format("%.2d:%.2d:%.2d", 
 				(line.t*86400)/(60*60), (line.t*86400) / 60 % 60, (line.t*86400) % 60)
-			formspec = formspec.."image[2,"..i..";7.2,2.2;timetravel_button_"..n..".png]"..
+			formspec = formspec..
+				"background[2,"..i..";7.2,2.2;timetravel_button_"..n..".png]"..
 				"label[5,"..(i+0.5)..";"..date..","..time_fmt.."]"..
 				"label[2.5,"..(i+0.5)..";"..line.phone.."]"..
 				"label[3.5,"..(i+0.9)..";"..string.sub(string.gsub(line.message, "\n", " "),1,20).."...]"..
@@ -510,27 +530,42 @@ end
 -- That shows the "Main" Screen   -- 
 -------------------------------------
 local function show_bg(player,phone)
-	local time = get_timeofday()
 	local name = player:get_player_name()
-	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
-	local c_time = get_timeofday()*86400
-	local digit_1 = floor((c_time/(60*60))/10)
-	local digit_2 = floor(c_time/(60*60) - digit_1*10)
-	local digit_3 = floor((c_time / 60 % 60)/10)
-	local digit_4 = floor(c_time / 60 % 60 - digit_3*10)
-	show_form(name, "time_travel:bg",
-		"size[10,10]" ..
-		"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
-		"image       [2.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_1.."]"..--11px Height for each frame
-		"image       [3.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_2.."]"..
-		"image       [4.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:10]".. --separator is 10
-		"image       [5.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_3.."]"..
-		"image       [6.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_4.."]"..
-		"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
-		"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
-		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
-		"")
+	local time_speed = setting_get("time_speed")
+	local t = 0
+	register_globalstep(function(dtime)
+		t = t + dtime
+		if PHHandler[name]["showing_background"] == true then
+			if t >= 1 then
+				t = 0
+				print( "oi?")
+				local time = get_timeofday()
+				local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
+				local c_time = get_timeofday()*86400
+				local digit_1 = floor((c_time/(60*60))/10)
+				local digit_2 = floor(c_time/(60*60) - digit_1*10)
+				local digit_3 = floor((c_time / 60 % 60)/10)
+				local digit_4 = floor(c_time / 60 % 60 - digit_3*10)
+				show_form(name, "time_travel:bg",
+					"size[10,10]" ..
+					"background[0,0;10,10;timetravel_phone.png^"..background.."]"..
+					"image       [2.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_1.."]"..
+					"image       [3.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_2.."]"..
+					"image       [4.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:10]".. --separator is 10
+					"image       [5.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_3.."]"..
+					"image       [6.5,2;1,1.5;timetravel_numbers.png^[verticalframe:11:"..digit_4.."]"..
+					"image_button_exit[3.2,8.7;0.6,0.6;timetravel_phone_X.png;x;]"..
+					"image_button[4.7,8.7;0.6,0.6;timetravel_phone_O.png;o;]"..
+					"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
+				"")
+			end
+		else
+			return
+		end
+	end)
 end
+
+
 -------------------------------------
 --    Shows the Video Galery       -- 
 -------------------------------------
@@ -612,12 +647,20 @@ local function set_alarm(player,phone)
 		"image_button[6.2,8.7;0.6,0.6;timetravel_phone_P.png;p;]"..
 		"")
 end
+-----------------------------------------
+-- Just a utility for make screenshots --
+--    TODO: add filters and a hud      --
+-----------------------------------------
 local function show_camera(player,phone)
 	local name = player:get_player_name()
 	local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 	--hide built-in
 	--player:hud_set_flags({crosshair = true, hotbar = false, healthbar = false, wielditem = false, breathbar = false})
 end
+------------------
+-- Photo Galery ------------------------------
+--    TODO: find a way to load screenshots  --
+----------------------------------------------
 local function photo_galery(player,pgnum)
 	local name = player:get_player_name()
 	local formspec = "size[10,10]" ..
@@ -668,19 +711,6 @@ local function show_video(player)
 			"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
 			"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"..
 			"")
-	--[[elseif PHHandler[name]["loop"] then
-		PHHandler[name]["frame"] = 1
-		show_form(name, "time_travel:show_video",
-			"size[10,10]" ..
-			"background[0,0;10,10;timetravel_phone_90.png;false]"..
-			"image_button[0.3,7.4;0.7,0.7;timetravel_button_play.png;play;]"..
-			"image[0.8,7.4;9.4,0.6;timetravel_video_bar.png]"..
-			"image[0.8,7.4;"..(9.4*(frame-1)/t_frames)..",0.6;timetravel_video_bar_BLUE.png]"..
-			"image[0.3,2.5;"..(5*2)..","..(2.81*2)..";("..videosrc.."^[verticalframe:"..t_frames..":1)]"..
-			"image_button_exit[8.7,3;0.6,0.6;timetravel_phone_X.png;x;]"..
-			"image_button[8.7,4.5;0.6,0.6;timetravel_phone_O.png;o;]"..
-			"image_button[8.7,6;0.6,0.6;timetravel_phone_P.png;p;]"..
-			"")]]
 	else
 		if sndHandler then
 			 m_stop(sndHandler)
@@ -762,6 +792,7 @@ p_rcv_fields(function(player, formname, fields)
 		--    Background    --
 		----------------------
 		elseif fields.p then
+			PHHandler[player_name]["showing_background"] = true
 			show_bg(player,phone)
 		end
 	elseif formname == "time_travel:messages" then
@@ -773,6 +804,9 @@ p_rcv_fields(function(player, formname, fields)
 		if num_pags == 0 then
 			num_pags = 1
 		end
+		-------------------------------
+		-- Scrolls to the next page  --
+		-------------------------------
 		if fields.key_down then
 			if page < num_pags then
 				page = page + 1
@@ -782,6 +816,9 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["page"] = page
 			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		end
+		-------------------------------
+		-- Scrolls to the prev page  --
+		-------------------------------
 		if fields.key_up then
 			if page > 1 then
 				page = page - 1
@@ -791,6 +828,9 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["page"] = page
 			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		end
+		-------------------------------
+		--    Delete det. message    --
+		-------------------------------
 		if fields["delete1"] then
 			--Which one I must use...
 			--FIXME remove the last one remaining msg it's not possible...
@@ -810,6 +850,9 @@ p_rcv_fields(function(player, formname, fields)
 			table.remove(DATABASE[player_name][phone][PHHandler[player_name]["box"]],(page-1)*4+4)
 			show_messages(player,page,phone,PHHandler[player_name]["box"])
 		end
+		-------------------------------
+		--     Shows det. message    --
+		-------------------------------
 		if fields["1"] then
 			show_msg(player,page,phone,PHHandler[player_name]["box"],1)
 		elseif fields["2"] then
@@ -822,9 +865,13 @@ p_rcv_fields(function(player, formname, fields)
 		if fields.o then
 			messages_menu(player,phone)
 		elseif fields.p then
+			PHHandler[player_name]["showing_background"] = true
 			--just the background
 			show_bg(player,phone)
 		end
+	-------------------------------
+	--      Shows all notes      --
+	-------------------------------
 	elseif formname == "time_travel:show_notes" then
 		local page = PHHandler[player_name]["page"]
 		local data = DATABASE[player_name][phone]["notes"]
@@ -833,9 +880,15 @@ p_rcv_fields(function(player, formname, fields)
 		if num_pags == 0 then
 			num_pags = 1
 		end
+		------------------
+		-- Add new note --
+		------------------
 		if fields.new_note then
 			compose_note(player,phone)
 		end
+		-------------------------------
+		-- Scrolls to the next page  --
+		-------------------------------
 		if fields.key_down then
 			if page < num_pags then
 				page = page + 1
@@ -845,6 +898,9 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["page"] = page
 			show_notes(player,page,phone)
 		end
+		-------------------------------
+		-- Scrolls to the prev page  --
+		-------------------------------
 		if fields.key_up then
 			if page > 1 then
 				page = page - 1
@@ -854,6 +910,9 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["page"] = page
 			show_notes(player,page,phone)
 		end
+		-------------------------------
+		--      Delete det. note     --
+		-------------------------------
 		if fields["delete1"] then
 			--Which one I must use?...
 			--FIXME remove the last one remaining msg it's not possible SOMETIMES...
@@ -873,6 +932,9 @@ p_rcv_fields(function(player, formname, fields)
 			table.remove(DATABASE[player_name][phone]["notes"],(page-1)*4+4)
 			show_notes(player,page,phone)
 		end
+		-------------------------------
+		--       Shows det. note     --
+		-------------------------------
 		if fields["1"] then
 			show_note(player,page,phone,1)
 		elseif fields["2"] then
@@ -885,6 +947,7 @@ p_rcv_fields(function(player, formname, fields)
 		if fields.o then
 			show_apps(player)
 		elseif fields.p then
+			PHHandler[player_name]["showing_background"] = true
 			--just the background
 			show_bg(player,phone)
 		end
@@ -892,6 +955,7 @@ p_rcv_fields(function(player, formname, fields)
 		if fields.o then
 			show_apps(player)
 		elseif fields.p then
+			PHHandler[player_name]["showing_background"] = true
 			--just the background
 			show_bg(player,phone)
 		end
@@ -918,7 +982,10 @@ p_rcv_fields(function(player, formname, fields)
 		end
 	elseif formname == "time_travel:bg" then
 		if fields.o then
+			PHHandler[player_name]["showing_background"] = false
 			show_apps(player)
+		elseif fields.x then
+			PHHandler[player_name]["showing_background"] = false
 		end
 	elseif formname == "time_travel:messages_menu" then
 		if fields["1"] then
@@ -934,13 +1001,18 @@ p_rcv_fields(function(player, formname, fields)
 			show_apps(player)
 		end
 		if fields.p then
+			PHHandler[player_name]["showing_background"] = true
 			show_bg(player,phone)
 		end
+	------------------------------
+	-- the video galery logical --
+	------------------------------
 	elseif formname == "time_travel:video_galery" then
 		if fields.o then
 			show_apps(player)
 		end
 		if fields.p then
+			PHHandler[player_name]["showing_background"] = true
 			show_bg(player,phone)
 		end
 		if fields["1"] then
@@ -968,6 +1040,9 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["video"] = VIDEOGLRY[(page-1)*8+8]
 			show_video(player)
 		end
+	------------------------------
+	-- the video player logical --
+	------------------------------
 	elseif formname == "time_travel:show_video" then
 		if fields.quit then
 			PHHandler[player_name]["playing"] = false
@@ -988,10 +1063,8 @@ p_rcv_fields(function(player, formname, fields)
 			if sndHandler then
 				 m_stop(sndHandler)
 			end
+			PHHandler[player_name]["showing_background"] = true
 			show_bg(player,phone)
-		--[[elseif fields.loop then
-			PHHandler[name]["loop"] = not PHHandler[name]["loop"]
-			show_video(player)]]
 		--FIXME Buggy: I think this would be impossible pause also the audio trail currenttly
 		elseif fields.pause then
 			PHHandler[player_name]["playing"] = false
@@ -1020,9 +1093,14 @@ p_rcv_fields(function(player, formname, fields)
 			minetest_after(s + rate, function()
 				PHHandler[player_name]["playing"] = false
 				PHHandler[player_name]["frame"] = 1
-				show_video(player)
+				if PHHandler[player_name]["playing"] == hash then
+					show_video(player)
+				end
 			end)
 		end
+	-------------------------------
+	--       Alarm ringing       --
+	-------------------------------
 	elseif formname == "time_travel:show_alarm" then
 		if fields.ok or fields.quit then
 			if PHHandler[player_name]["alarmHandler"] then
@@ -1031,7 +1109,7 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["alarmHandler"] = false
 			PHHandler[player_name]["alarmShift"] = 0
 		elseif fields.snooze then
-			--FIXME It aren't working
+			--FIXME It isn't working
 			minetest_after(3,show_alarm,player,phone)
 			if PHHandler[player_name]["alarmHandler"] then
 				 m_stop(PHHandler[player_name]["alarmHandler"])
@@ -1039,6 +1117,9 @@ p_rcv_fields(function(player, formname, fields)
 			PHHandler[player_name]["alarmHandler"] = false
 			PHHandler[player_name]["alarmShift"] = 0
 		end
+	-------------------------------
+	--    Create a new alarm     --
+	-------------------------------
 	elseif formname == "time_travel:set_alarm" then
 		--if there's any alarm playing
 		print(dump(PHHandler[player_name]["alarmHandler"]))
@@ -1080,9 +1161,13 @@ p_rcv_fields(function(player, formname, fields)
 				show_apps(player)
 			end
 			if fields.p then
+				PHHandler[player_name]["showing_background"] = true
 				show_bg(player,phone)
 			end
 		end
+	-------------------------------
+	--      Create msg dialog    --
+	-------------------------------
 	elseif formname == "time_travel:messages_compose_menu" then
 		if fields.o or fields.CANCEL then
 			messages_menu(player,phone)
@@ -1090,11 +1175,15 @@ p_rcv_fields(function(player, formname, fields)
 			--just the background
 			show_apps(player)
 		elseif fields.OK then
+			--Destination
 			local to = fields["time_travel:dest_msg"]
+			--Body of message
 			local body = fields["time_travel:body_msg"]
+			--If theres some empty field do not send anything
 			if not to then return end
 			if not body then return end
 			local dest_player_name = to
+			--TODO: add suport only for contacts
 			if type(to) == "string" then -- a name
 				for key, value in pairs(DATABASE[to] or {}) do
 					--get the first one
@@ -1112,6 +1201,9 @@ p_rcv_fields(function(player, formname, fields)
 				end
 			end
 			local function send() --send message to dest
+				--FIXME D-Mail
+				local pos = player:get_pos()
+				find_node(pos, 5, {"homedecor:television"})
 				t_insert(DATABASE[dest_player_name][to]["received"],1, {
 					phone = phone,
 					message = body,
@@ -1129,14 +1221,14 @@ p_rcv_fields(function(player, formname, fields)
 					d = get_gametime()
 				})
 			end
+			local tone = DATABASE[dest_player_name][phone]["config"]["sms_ringtone"]
+			local vibration = DATABASE[dest_player_name][phone]["config"]["vibration"]
 			--TRY EXCEPT Lua version
-			local tone = DATABASE[player_name][phone]["config"]["sms_ringtone"]
-			local vibration = DATABASE[player_name][phone]["config"]["vibration"]
 			if not pcall(send) then
 				--Error probably only when user or phone not exists
 				t_insert(DATABASE[player_name][phone]["received"],1, {
 					phone = 'Minetest',
-					message = "Message not sent, reason: player or number incorrect.",
+					message = "Message not sent, reason: name or number incorrect.",
 					s = true,
 					t = get_timeofday(),
 					d = get_gametime()
@@ -1158,6 +1250,9 @@ p_rcv_fields(function(player, formname, fields)
 			end
 			messages_menu(player,phone)
 		end
+	-------------------------------
+	--     Create note dialog    --
+	-------------------------------
 	elseif formname == "time_travel:compose_note" then
 		if fields.o or fields.CANCEL then
 			show_notes(player,1,phone)
@@ -1165,8 +1260,10 @@ p_rcv_fields(function(player, formname, fields)
 			--just the background
 			show_apps(player)
 		elseif fields.OK then
+			local txt = fields["time_travel:body_text"]
+			if not txt then return end
 			t_insert(DATABASE[player_name][phone]["notes"],1, {
-				text = fields["time_travel:body_text"]
+				text = txt
 			})
 			show_notes(player,1,phone)
 		end
