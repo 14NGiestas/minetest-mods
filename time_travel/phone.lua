@@ -538,7 +538,6 @@ local function show_bg(player,phone)
 		if PHHandler[name]["showing_background"] == true then
 			if t >= 1 then
 				t = 0
-				print( "oi?")
 				local time = get_timeofday()
 				local background = "timetravel_bg"..DATABASE[name][phone]["config"].wallpaper..".png"
 				local c_time = get_timeofday()*86400
