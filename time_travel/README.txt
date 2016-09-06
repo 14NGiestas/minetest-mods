@@ -10,7 +10,7 @@ That's my email: iangiestaspauli@hotmail.com
 contribuitors:
 =============
 >>> rui 
-GITHUB: http://github.com/Rui914
+GITHUB: http://github.com/Rui-Minetest
 
 
 License:
